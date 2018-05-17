@@ -1,0 +1,32 @@
+{% extends "base.html" %} {% block app_content %}
+<script src="{{ url_for('static', filename='require.js') }}"></script>
+<div id="editor"></div>
+<style>
+    #editor {
+        height: 700px;
+    }
+</style>
+<script>
+    require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
+    window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+    let proxy = URL.createObjectURL(new Blob([`
+	self.MonacoEnvironment = {
+		baseUrl: 'https://unpkg.com/monaco-editor@0.8.3/min/'
+	};
+	importScripts('https://unpkg.com/monaco-editor@0.8.3/min/vs/base/worker/workerMain.js');
+`], { type: 'text/javascript' }));
+
+    require(["vs/editor/editor.main"], function () {
+        let editor = monaco.editor.create(document.getElementById('editor'), {
+            automaticLayout: true,
+            autoIndent: true,
+            language: 'python',
+            theme: 'vs-light'
+        });
+
+        editor.addListener('didType', () => {
+            console.log(editor.getValue());
+        });
+    });
+</script> {% endblock %}

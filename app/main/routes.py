@@ -22,6 +22,12 @@ def user(username):
     return render_template('user.html', user=user)
 
 
+@bp.route('/editor')
+@login_required
+def editor():
+    return render_template('editor.html')
+
+
 @bp.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():

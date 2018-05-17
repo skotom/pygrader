@@ -49,14 +49,17 @@ class User(UserMixin, db.Model):
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
 
-# Define the Role data-model
-
-
-class Role(db.Model):
-    id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(50), unique=True)
-
 
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))
+
+
+class Role(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    name = db.Column(db.String(50), unique=True)
+
+
+class Course(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    title = db.Column(db.String, unique=True)
