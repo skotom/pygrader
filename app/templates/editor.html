@@ -1,32 +1,74 @@
-{% extends "base.html" %} {% block app_content %}
 <script src="{{ url_for('static', filename='require.js') }}"></script>
+<div class="row">
+    <div class="col-md-1">
+        <button class="btn btn-default">Save</button>
+    </div>
+    <div class="col-md-1">or</div>
+    <div class="col-md-8">
+        <form id="fileForm" method=post enctype=multipart/form-data>
+            <label class="btn btn-default btn-file">
+                Upload file
+                <input id="fileInput" name="file" type="file" style="display: none;">
+            </label>
+        </form>
+    </div>
+
+    <div class="col-md-2 text-right">
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" value="">Auto-save</label>
+        </div>
+    </div>
+</div>
 <div id="editor"></div>
+<div class="row">
+    <div class="col-md-12 text-right">
+        <button class="btn btn-default">Turn in</button>
+    </div>
+</div>
 <style>
     #editor {
+        margin-bottom: 10px;
         height: 700px;
     }
 </style>
 <script>
-    require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
-    window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 
-    let proxy = URL.createObjectURL(new Blob([`
+    window.onload = function () {
+        var code = `{% if code %}{{ code|safe }}{% endif %}`;
+        console.log(code);
+        initEditor(code);
+        initFileUpload();
+    };
+
+    function initFileUpload() {
+        document.getElementById("fileInput").onchange = function () {
+            document.getElementById("fileForm").submit();
+        };
+    }
+    function initEditor(code = '') {
+        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
+        window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+        let proxy = URL.createObjectURL(new Blob([`
 	self.MonacoEnvironment = {
 		baseUrl: 'https://unpkg.com/monaco-editor@0.8.3/min/'
 	};
 	importScripts('https://unpkg.com/monaco-editor@0.8.3/min/vs/base/worker/workerMain.js');
 `], { type: 'text/javascript' }));
 
-    require(["vs/editor/editor.main"], function () {
-        let editor = monaco.editor.create(document.getElementById('editor'), {
-            automaticLayout: true,
-            autoIndent: true,
-            language: 'python',
-            theme: 'vs-light'
-        });
+        require(["vs/editor/editor.main"], function () {
+            let editor = monaco.editor.create(document.getElementById('editor'), {
+                automaticLayout: true,
+                autoIndent: true,
+                language: 'python',
+                theme: 'vs-dark',
+                value: code
+            });
 
-        editor.addListener('didType', () => {
-            console.log(editor.getValue());
+            editor.addListener('didType', () => {
+                console.log("Auto saving biatch" + editor.getValue());
+            });
         });
-    });
-</script> {% endblock %}
+    }
+</script>

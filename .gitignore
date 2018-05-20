@@ -28,6 +28,7 @@ pip-log.txt
 nosetests.xml
 
 venv
+uploads
 app.db
 pygrader.log*
 .env

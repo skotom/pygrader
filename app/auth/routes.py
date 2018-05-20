@@ -39,7 +39,7 @@ def register():
         return redirect(url_for('main.index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        role = Role.query.filter_by(id=2).first()
+        role = Role.query.filter_by(id=3).first()
         user = User(username=form.username.data,
                     email=form.email.data, role=role)
         user.set_password(form.password.data)

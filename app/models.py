@@ -9,6 +9,12 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 
+enrollments = db.Table(
+    'enrollments',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('course_id', db.Integer, db.ForeignKey('course.id'))
+)
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -19,6 +25,11 @@ class User(UserMixin, db.Model):
     role = db.relationship('Role')
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
+    auto_save_code = db.Column(db.Boolean)
+    courses = db.relationship(
+        'Course', secondary=enrollments,
+        primaryjoin=(enrollments.c.user_id == id),
+        backref=db.backref('enrollments', lazy='dynamic'), lazy='dynamic')
 
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(
@@ -49,6 +60,18 @@ class User(UserMixin, db.Model):
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
 
+    def enroll(self, course):
+        if not self.is_enrolled(course):
+            self.courses.append(course)
+
+    def withdraw(self, course):
+        if self.is_enrolled(course):
+            self.courses.remove(course)
+
+    def is_enrolled(self, course):
+        return self.courses.filter(
+            enrollments.c.course_id == course.id).count() > 0
+
 
 @login.user_loader
 def load_user(id):
@@ -62,4 +85,41 @@ class Role(db.Model):
 
 class Course(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
-    title = db.Column(db.String, unique=True)
+    title = db.Column(db.String(100), unique=True)
+    creator_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
+    creator = db.relationship('User')
+
+    users = db.relationship(
+        'User', secondary=enrollments,
+        primaryjoin=(enrollments.c.course_id == id),
+        backref=db.backref('enrollments', lazy='dynamic'), lazy='dynamic')
+
+
+class Assignment(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    course_id = db.Column(db.Integer(), db.ForeignKey('course.id'))
+    course = db.relationship('Course')
+    title = db.Column(db.String(100), unique=True)
+    description = db.Column(db.Text)
+    test_id = db.Column(db.Integer(), db.ForeignKey('test.id'))
+    test = db.relationship('Test')
+
+
+class Test(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    code_id = db.Column(db.Integer(), db.ForeignKey('code.id'))
+    code = db.relationship('Code')
+
+
+class Solution(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
+    user = db.relationship('User')
+    code_id = db.Column(db.Integer(), db.ForeignKey('code.id'))
+    code = db.relationship('Code')
+    is_completed = db.Column(db.Boolean)
+
+
+class Code(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    path = db.column(db.String)
