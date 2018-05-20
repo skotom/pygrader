@@ -103,6 +103,8 @@ class Assignment(db.Model):
     description = db.Column(db.Text)
     test_id = db.Column(db.Integer(), db.ForeignKey('test.id'))
     test = db.relationship('Test')
+    solution_id = db.Column(db.Integer(), db.ForeignKey('solution.id'))
+    solution = db.relationship('Solution')
 
 
 class Test(db.Model):
