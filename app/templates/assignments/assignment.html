@@ -1,0 +1,9 @@
+{% extends 'base.html' %} {% block app_content %}
+<h1>{{ assignment.title }}</h1>
+<p>{{ assignment.description }}</p>
+<div class="row">
+    <div class="col-md-12">
+        <a href="{{url_for('assignments.edit_assignment', id=assignment.id)}}" class="btn btn-default">Edit</a>
+    </div>
+</div>
+{% include 'editor.html' %} {% endblock %}

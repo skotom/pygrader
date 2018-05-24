@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from flask import Flask, request, current_app
+from flask import Flask
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -38,7 +38,12 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/auth')
 
     from app.main import bp as main_bp
+    from app.courses import bp as courses_bp
+    from app.assignments import bp as assignments_bp
+
     app.register_blueprint(main_bp)
+    app.register_blueprint(courses_bp)
+    app.register_blueprint(assignments_bp)
 
     if not app.debug and not app.testing:
         if not os.path.exists('logs'):
