@@ -9,7 +9,10 @@ from app.courses import bp
 @bp.route('/courses', methods=['GET', 'POST'])
 @login_required
 def courses():
-    courses = Course.query.filter_by(creator_id=current_user.id)
+    if(current_user.role.name == 'teacher'):
+        courses = Course.query.filter_by(creator_id=current_user.id)
+    else:
+        courses = Course.query.all()
     return render_template('courses/courses.html', courses=courses)
 
 

@@ -1,10 +1,10 @@
-{% extends 'base.html' %} {% block app_content %}
+{% extends 'base.html' %} {% block app_content %} {% if current_user.role.name == 'teacher' %}
 <div class="row">
     <div class="col-md-12">
         <a href="{{url_for('courses.add_course')}}" class="btn btn-default">Add course</a>
     </div>
 </div>
-{% for course in courses %}
+{% endif %} {% for course in courses %}
 <div class="row">
     <div class="col-md-12">
         <a href="{{url_for('courses.course', id=course.id)}}">{{ course.title }}</a>
