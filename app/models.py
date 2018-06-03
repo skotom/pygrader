@@ -1,8 +1,5 @@
-import base64
-from datetime import datetime, timedelta
 from hashlib import md5
 from time import time
-import os
 from flask import current_app
 from app import db, login
 from flask_login import UserMixin

@@ -1,12 +1,13 @@
+import io
+import os
 from flask import render_template, flash, redirect, url_for, request, \
     current_app
 from flask_login import login_required, current_user
-from functools import wraps
 from app import db
-from app.models import User
 from app.assignments.forms import AddAssignmentForm
 from app.models import Course, Assignment
 from app.assignments import bp
+from werkzeug.utils import secure_filename
 
 
 @bp.route('/assignment/<int:id>', methods=['GET', 'POST'])
@@ -55,3 +56,54 @@ def edit_assignment(id):
     return render_template('assignments/edit_assignment.html',
                            title='Edit assignment',
                            form=form)
+
+
+@bp.route('/editor/<int: assignment_id>', methods=['GET'])
+@login_required
+def editor(assignment_id):
+    assignment = Assignment.query.filter_by(id=assignment_id)
+    course = assignment.course
+    render_template('editor.html', assignment=assignment, course=course)
+
+
+@bp.route('/save_file', methods=['GET', 'POST'])
+@login_required
+def save_code():
+    code = ''
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+
+        file = request.files['file']
+
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            user_path = os.path.join(
+                current_app.config['UPLOAD_FOLDER'], current_user.username)
+
+            if not os.path.exists(user_path):
+                os.makedirs(user_path)
+
+            path = os.path.join(user_path, filename)
+
+            file.save(path)
+            code = read_file(path)
+    return code
+
+
+def read_file(path):
+    contents = ""
+    with io.open(path, 'r', encoding='utf8') as f:
+        contents = f.read()
+    return contents
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower(
+           ) in current_app.config['ALLOWED_EXTENSIONS']
