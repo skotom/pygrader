@@ -1,11 +1,12 @@
 import io
 import os
+import sys
 from flask import render_template, flash, redirect, url_for, request, \
     current_app
 from flask_login import login_required, current_user
 from app import db
 from app.assignments.forms import AddAssignmentForm
-from app.models import Course, Assignment
+from app.models import Course, Assignment, Solution, Test, Code
 from app.assignments import bp
 from werkzeug.utils import secure_filename
 
@@ -21,7 +22,6 @@ def assignment(id):
 @bp.route('/course/<int:course_id>/add_assignment', methods=['GET', 'POST'])
 @login_required
 def add_assignment(course_id):
-    print(current_user.role.name)
     course = Course.query.filter_by(id=course_id).first_or_404()
     form = AddAssignmentForm()
     if form.validate_on_submit():
@@ -58,19 +58,38 @@ def edit_assignment(id):
                            form=form)
 
 
-@bp.route('/editor/<int: assignment_id>', methods=['GET'])
+@bp.route('/editor/<int:assignment_id>', methods=['GET'])
 @login_required
 def editor(assignment_id):
-    assignment = Assignment.query.filter_by(id=assignment_id)
-    course = assignment.course
-    render_template('editor.html', assignment=assignment, course=course)
-
-
-@bp.route('/save_file', methods=['GET', 'POST'])
-@login_required
-def save_code():
+    tab = request.args.get('tab')
     code = ''
+
+    if current_user.role.name == 'teacher':
+        assignment = Assignment.query.filter_by(id=assignment_id).first()
+        if tab == 'solution':
+            solution = assignment.solution
+            solution_code = read_file(
+                solution.code.path) if solution else ''
+            code = solution_code
+        else:
+            test = assignment.test
+            test_code = read_file(test.code.path) if test else ''
+            code = test_code
+    # else:
+        # get user assignment data
+
+    return render_template('editor.html', assignment=assignment, code=code)
+
+
+@bp.route('/save_file', methods=['POST'])
+@login_required
+def save_file():
     if request.method == 'POST':
+        tab = request.form.get('tab')
+        assignment_id = request.form.get('assignment_id')
+        assignment = Assignment.query.filter_by(id=assignment_id).first()
+        course = assignment.course
+
         if 'file' not in request.files:
             flash('No file part')
             return redirect(request.url)
@@ -82,9 +101,10 @@ def save_code():
             return redirect(request.url)
 
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            filename = secure_filename('{}.py'.format(tab))
             user_path = os.path.join(
-                current_app.config['UPLOAD_FOLDER'], current_user.username)
+                current_app.config['UPLOAD_FOLDER'], current_user.username,
+                course.title, str(assignment.id))
 
             if not os.path.exists(user_path):
                 os.makedirs(user_path)
@@ -92,8 +112,112 @@ def save_code():
             path = os.path.join(user_path, filename)
 
             file.save(path)
-            code = read_file(path)
-    return code
+
+        if tab == 'solution':
+            save_solution(assignment, path)
+        elif tab == 'test':
+            save_test(assignment, path)
+
+    return "OK"
+
+
+def save_solution(assignment, path):
+    code = Code()
+    solution = Solution()
+
+    if assignment.solution:
+        solution = assignment.solution
+        if solution.code:
+            code = solution.code
+        else:
+            code.path = path
+    else:
+        solution = Solution(user=current_user)
+        assignment.set_solution(solution)
+        code.path = path
+
+    solution.set_code(code)
+    db.session.add(code)
+    db.session.add(solution)
+    db.session.add(assignment)
+    db.session.commit()
+
+
+def save_test(assignment, path):
+    code = Code()
+
+    if assignment.test:
+        test = assignment.test
+        if test.code:
+            code = test.code
+        else:
+            code.path = path
+    else:
+        test = Test()
+        assignment.set_test(test)
+        code.path = path
+
+    test.set_code(code)
+    db.session.add(code)
+    db.session.add(test)
+    db.session.add(assignment)
+    db.session.commit()
+
+
+@bp.route('/save_code/<int:assignment_id>', methods=['POST'])
+@login_required
+def save_code(assignment_id):
+    if request.method == 'POST':
+        code = request.form.get('code')
+        tab = request.form.get('tab')
+        assignment = Assignment.query.filter_by(id=assignment_id).first()
+        course = assignment.course
+
+        filename = secure_filename('{}.py'.format(tab))
+        user_path = os.path.join(
+            current_app.config['UPLOAD_FOLDER'], current_user.username,
+            course.title, str(assignment.id))
+
+        if not os.path.exists(user_path):
+            os.makedirs(user_path)
+
+        path = os.path.join(user_path, filename)
+        file = open(path, "w+")
+        file.write(code)
+
+        if tab == 'solution':
+            save_solution(assignment, path)
+        elif tab == 'test':
+            save_test(assignment, path)
+
+    return "OK"
+
+
+@bp.route('/run_code', methods=['POST'])
+@login_required
+def run_code():
+    code = request.form.get('code')
+    resp = ''
+    try:
+        executable = compile(code, '<string>', 'exec')
+        buffer = io.StringIO()
+        sys.stdout = buffer
+        exec(executable)
+        sys.stdout = sys.__stdout__
+        resp = buffer.getvalue()
+    except IOError as ioe:
+        resp = str(ioe)
+    except ValueError as ve:
+        resp = str(ve)
+    except ImportError as ie:
+        resp = str(ie)
+    except EOFError as eof:
+        resp = str(eof)
+    except SyntaxError as se:
+        resp = str(se)
+    except:
+        resp = 'An error occurred.'
+    return resp
 
 
 def read_file(path):

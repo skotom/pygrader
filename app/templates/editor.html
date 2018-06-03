@@ -1,15 +1,9 @@
 <script src="{{ url_for('static', filename='require.js') }}"></script>
 <div class="row">
-    <div class="col-md-1">
-        <button class="btn btn-default">Save</button>
-    </div>
-    <div class="col-md-1">or</div>
     <div class="col-md-8">
-        <form id="fileForm" method=post enctype=multipart/form-data>
-            <label class="btn btn-default btn-file">
-                Upload file
-                <input id="fileInput" name="file" type="file" style="display: none;">
-            </label>
+        <form id="fileForm" method="post">
+            <input id="fileInput" name="file" type="file">
+            <button id="uploadButton">Upload</button>
         </form>
     </div>
 
@@ -20,7 +14,27 @@
         </div>
     </div>
 </div>
-<div id="editor"></div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div id="tabArea">
+            <span id="solution" class="tab">Solution</span>
+            <span id="test" class="tab">Test</span>
+            <div title="Upload" class="action upload">
+                <span class="glyphicon glyphicon-cloud-upload"></span>Upload file
+            </div>
+            <div id="save" title="Save" class="action save">
+                <span class="glyphicon glyphicon-floppy-disk"></span>Save
+            </div>
+            <div id="run" title="Run" class="action run">
+                <span class="glyphicon glyphicon-play"></span>Run
+            </div>
+        </div>
+        <div id="editor"></div>
+    </div>
+    <div id="result" class="col-md-4"></div>
+</div>
+
 <div class="row">
     <div class="col-md-12 text-right">
         <button class="btn btn-default">Turn in</button>
@@ -28,47 +42,171 @@
 </div>
 <style>
     #editor {
+        border: 1px solid #999;
+        border-top: 0;
         margin-bottom: 10px;
-        height: 700px;
+        height: 400px;
+    }
+
+    #result {
+        font-family: "Courier new";
+        margin-top: 20px;
+        border: 1px solid #999;
+        height: 400px;
+        white-space: pre-wrap;
+    }
+
+    #tabArea {
+        height: 20px;
+        box-sizing: border-box;
+        border-bottom: 1px solid #999
+    }
+
+    .tab {
+        height: 20px;
+        line-height: 20px;
+        box-sizing: border-box;
+        color: #999;
+        padding: 0 8px;
+        border: 1px solid #999;
+        border-bottom: 0;
+        cursor: pointer;
+        float: left;
+    }
+
+    .action {
+        height: 20px;
+        line-height: 20px;
+        box-sizing: border-box;
+        color: #000;
+        padding: 0 5px;
+        border: 1px solid #999;
+        border-bottom: 0;
+        cursor: pointer;
+        float: right;
+        padding-left: 16px;
+    }
+
+    .tab.active {
+        color: #000;
+        border-bottom: 1px solid #fff
     }
 </style>
 <script>
-
-    window.onload = function () {
-        var code = `{% if code %}{{ code|safe }}{% endif %}`;
-        console.log(code);
-        initEditor(code);
-        initFileUpload();
-    };
+    function changeTab(selectedTab) {
+        var tabs = $(".tab");
+        tabs.removeClass('active');
+        selectedTab.addClass('active');
+        loadEditor(selectedTab.attr('id'));
+    }
 
     function initFileUpload() {
-        document.getElementById("fileInput").onchange = function () {
-            document.getElementById("fileForm").submit();
-        };
+        var form = document.getElementById('fileForm');
+        var fileInput = document.getElementById('fileInput');
+        var uploadButton = document.getElementById('uploadButton');
+
+        form.onsubmit = function (event) {
+            event.preventDefault();
+
+            var files = fileInput.files
+            var formData = new FormData();
+
+            for (let file of files) {
+                formData.append('file', file);
+            }
+
+            formData.append('assignment_id', '{{ assignment.id }}');
+            formData.append('tab', $('.active').attr('id'));
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ url_for('assignments.save_file') }}', true);
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    loadEditor($(".active").attr('id'));
+                } else {
+                    alert('An error occurred!');
+                }
+            };
+
+            xhr.send(formData);
+        }
     }
+
     function initEditor(code = '') {
         require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 
         let proxy = URL.createObjectURL(new Blob([`
-	self.MonacoEnvironment = {
-		baseUrl: 'https://unpkg.com/monaco-editor@0.8.3/min/'
-	};
-	importScripts('https://unpkg.com/monaco-editor@0.8.3/min/vs/base/worker/workerMain.js');
-`], { type: 'text/javascript' }));
+            self.MonacoEnvironment = {
+		        baseUrl: 'https://unpkg.com/monaco-editor@0.8.3/min/'
+	        };
+	        importScripts('https://unpkg.com/monaco-editor@0.8.3/min/vs/base/worker/workerMain.js');`
+        ], { type: 'text/javascript' }));
 
         require(["vs/editor/editor.main"], function () {
-            let editor = monaco.editor.create(document.getElementById('editor'), {
+            window.editor = monaco.editor.create(document.getElementById('editor'), {
                 automaticLayout: true,
                 autoIndent: true,
+                formatOnPaste: true,
+                formatOnType: true,
                 language: 'python',
-                theme: 'vs-dark',
+                theme: 'vs-light',
                 value: code
             });
 
-            editor.addListener('didType', () => {
-                console.log("Auto saving biatch" + editor.getValue());
+            window.editor.addListener('didType', () => {
+                // console.log("Auto saving biatch" + window.editor);
             });
         });
     }
+
+    function saveCode(code) {
+        var tab = $(".active").attr("id");
+        $.ajax({
+            type: 'post',
+            data: { code: code, tab: tab },
+            url: '{{url_for('assignments.save_code', assignment_id=assignment.id)}}',
+            success: function (response) {
+                loadEditor(tab);
+            },
+            error: function () {
+
+            }
+
+        })
+    }
+
+    function runCode(code) {
+        $.ajax({
+            type: 'post',
+            data: { code: code },
+            url: '{{url_for('assignments.run_code')}}',
+            success: function (response) {
+                $("#result").empty().text(response);
+            },
+            error: function () {
+
+            }
+        })
+    }
+
+    function init(activeTabId) {
+        var code = `{% if code %}{{ code|safe }}{% endif %}`;
+        initEditor(code);
+        initFileUpload();
+
+        var tab = $(".tab");
+        var activeTab = $("#" + activeTabId);
+        activeTab.addClass('active');
+
+        tab.on('click', function () { changeTab($(this)) });
+
+        $('#save').on('click', function () {
+            saveCode(window.editor.getValue());
+        });
+
+        $('#run').on('click', function () {
+            runCode(window.editor.getValue());
+        });
+    };
 </script>
