@@ -1,16 +1,9 @@
 <script src="{{ url_for('static', filename='require.js') }}"></script>
 <div class="row">
-    <div class="col-md-8">
-        <form id="fileForm" method="post">
-            <input id="fileInput" name="file" type="file">
-            <button id="uploadButton">Upload</button>
-        </form>
-    </div>
-
-    <div class="col-md-2 text-right">
+    <div class="col-md-offset-10 col-md-2 text-right">
         <div class="checkbox">
             <label>
-                <input type="checkbox" value="">Auto-save</label>
+                <input type="checkbox" name="auto_save_code" {% if current_user.auto_save_code %} checked="true" {% endif%} id="auto_save_code"> Auto-save
         </div>
     </div>
 </div>
@@ -20,14 +13,14 @@
         <div id="tabArea">
             <span id="solution" class="tab">Solution</span>
             <span id="test" class="tab">Test</span>
-            <div title="Upload" class="action upload">
-                <span class="glyphicon glyphicon-cloud-upload"></span>Upload file
+            <div title="Upload" class="action upload" id="uploadFileBtn">
+                <span class="glyphicon glyphicon-cloud-upload"></span> Upload file
             </div>
             <div id="save" title="Save" class="action save">
-                <span class="glyphicon glyphicon-floppy-disk"></span>Save
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
             </div>
             <div id="run" title="Run" class="action run">
-                <span class="glyphicon glyphicon-play"></span>Run
+                <span class="glyphicon glyphicon-play"></span> Run
             </div>
         </div>
         <div id="editor"></div>
@@ -40,6 +33,27 @@
         <button class="btn btn-default">Turn in</button>
     </div>
 </div>
+
+<div class="modal" id="uploadFileModal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Modal Header</h4>
+            </div>
+            <div class="modal-body">
+                <form id="fileForm" method="post">
+                    <input id="fileInput" name="file" type="file">
+                    <button id="uploadButton"> Upload</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
 <style>
     #editor {
         border: 1px solid #999;
@@ -50,21 +64,22 @@
 
     #result {
         font-family: "Courier new";
-        margin-top: 20px;
+        margin-top: 30px;
         border: 1px solid #999;
         height: 400px;
         white-space: pre-wrap;
     }
 
     #tabArea {
-        height: 20px;
+        font-size: 15px;
+        height: 30px;
         box-sizing: border-box;
         border-bottom: 1px solid #999
     }
 
     .tab {
-        height: 20px;
-        line-height: 20px;
+        height: 30px;
+        line-height: 30px;
         box-sizing: border-box;
         color: #999;
         padding: 0 8px;
@@ -75,8 +90,8 @@
     }
 
     .action {
-        height: 20px;
-        line-height: 20px;
+        height: 30px;
+        line-height: 30px;
         box-sizing: border-box;
         color: #000;
         padding: 0 5px;
@@ -87,6 +102,22 @@
         padding-left: 16px;
     }
 
+    .action.run:hover>span {
+        color: #3ea762;
+    }
+
+    .action.save:hover>span {
+        color: #3e86a7;
+    }
+
+    .action.upload:hover>span {
+        color: #a73e9b;
+    }
+
+    .action:hover>span {
+        transition: 0.3s;
+    }
+
     .tab.active {
         color: #000;
         border-bottom: 1px solid #fff
@@ -94,6 +125,7 @@
 </style>
 <script>
     function changeTab(selectedTab) {
+        saveCode(window.editor.getValue());
         var tabs = $(".tab");
         tabs.removeClass('active');
         selectedTab.addClass('active');
@@ -153,10 +185,11 @@
                 theme: 'vs-light',
                 value: code
             });
-
+            {% if current_user.auto_save_code %}
             window.editor.addListener('didType', () => {
-                // console.log("Auto saving biatch" + window.editor);
+                saveCode(window.editor.getValue());
             });
+            {% endif %}
         });
     }
 
@@ -167,7 +200,6 @@
             data: { code: code, tab: tab },
             url: '{{url_for('assignments.save_code', assignment_id=assignment.id)}}',
             success: function (response) {
-                loadEditor(tab);
             },
             error: function () {
 
@@ -179,15 +211,14 @@
     function runCode(code) {
         $.ajax({
             type: 'post',
-            data: { code: code },
-            url: '{{url_for('assignments.run_code')}}',
+            url: '{{url_for('assignments.run_code', assignment_id=assignment.id)}}',
             success: function (response) {
                 $("#result").empty().text(response);
             },
             error: function () {
 
             }
-        })
+        });
     }
 
     function init(activeTabId) {
@@ -209,4 +240,49 @@
             runCode(window.editor.getValue());
         });
     };
+
+    function setAutoSaveCode(auto_save_code) {
+        if (auto_save_code) {
+            window.editor.addListener('didType', () => {
+                saveCode(window.editor.getValue());
+            });
+        } else {
+            window.editor.removeListener('didType', () => {
+                saveCode(window.editor.getValue());
+            });
+        }
+        $.ajax({
+            type: 'put',
+            data: { auto_save_code: auto_save_code },
+            url: '{{url_for('main.set_auto_save')}}',
+            success: function (response) {
+            },
+            error: function () {
+
+            }
+        });
+    }
+
+    function cleanLocalStorage() {
+        localStorage.removeItem("solution");
+        localStorage.removeItem("test");
+    }
+
+    $(document).ready(function () {
+        cleanLocalStorage();
+
+        $("#uploadFileBtn").click(function () {
+            $("#uploadFileModal").modal();
+        });
+
+        $("#fileForm").on("submit", function () {
+            $(".modal").modal("hide");
+        });
+
+        $('#auto_save_code').click(function () {
+            setAutoSaveCode(this.checked);
+        });
+
+
+    });
 </script>

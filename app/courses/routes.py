@@ -33,7 +33,7 @@ def add_course():
         db.session.add(course)
         db.session.commit()
         flash('Successfully added new course.')
-        return redirect(url_for('courses.courses'))
+        return redirect(url_for('courses.course', id=course.id))
 
     return render_template('courses/add_course.html', title='Add course',
                            form=form)

@@ -32,7 +32,7 @@ def add_assignment(course_id):
         db.session.add(assignment)
         db.session.commit()
         flash('Successfully added new assignment to {}'.format(course.title))
-        return redirect(url_for('courses.course', id=course.id))
+        return redirect(url_for('assignments.assignment', id=assignment.id))
 
     return render_template('assignments/add_assignment.html',
                            title='Add assignment',
@@ -193,16 +193,25 @@ def save_code(assignment_id):
     return "OK"
 
 
-@bp.route('/run_code', methods=['POST'])
+@bp.route('/run_code/<int:assignment_id>', methods=['POST'])
 @login_required
-def run_code():
-    code = request.form.get('code')
+def run_code(assignment_id):
+    assignment = Assignment.query.filter_by(id=assignment_id).first()
+    solution = read_file(assignment.solution.code.path)
+    test = read_file(assignment.test.code.path)
+
+    code = solution + "\n" + test
+
+    return execute_code(code)
+
+
+def execute_code(code):
     resp = ''
     try:
         executable = compile(code, '<string>', 'exec')
         buffer = io.StringIO()
         sys.stdout = buffer
-        exec(executable)
+        exec(executable, locals(), locals())
         sys.stdout = sys.__stdout__
         resp = buffer.getvalue()
     except IOError as ioe:
