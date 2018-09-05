@@ -32,5 +32,6 @@ uploads
 app.db
 pygrader.log*
 .env
+.flaskenv
 #editor
 .vscode
