@@ -197,8 +197,13 @@ def save_code(assignment_id):
 @login_required
 def run_code(assignment_id):
     assignment = Assignment.query.filter_by(id=assignment_id).first()
-    solution = read_file(assignment.solution.code.path)
-    test = read_file(assignment.test.code.path)
+    # todo@tome handle if first time and no solution or test
+    solution = ""
+    if assignment.solution:
+        solution = read_file(assignment.solution.code.path)
+    test = ""
+    if assignment.test:
+        test = read_file(assignment.test.code.path)
 
     code = solution + "\n" + test
 
