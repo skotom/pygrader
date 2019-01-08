@@ -124,6 +124,7 @@
     }
 </style>
 <script>
+    var DID_CHANGE_EVENT;
     function changeTab(selectedTab) {
         saveCode(window.editor.getValue());
         var tabs = $(".tab");
@@ -187,7 +188,7 @@
                 value: code
             });
             {% if current_user.auto_save_code %}
-            window.editor.addListener('didType', () => {
+            DID_CHANGE_EVENT = window.editor.model.onDidChangeContent((event) => {
                 saveCode(window.editor.getValue());
             });
             {% endif %}
@@ -201,11 +202,10 @@
             data: { code: code, tab: tab },
             url: '{{url_for('assignments.save_code', assignment_id=assignment.id)}}',
             success: function (response) {
-                alert(response);
+                console.log(response);
             },
             error: function () {
             }
-
         })
     }
 
@@ -244,13 +244,11 @@
 
     function setAutoSaveCode(auto_save_code) {
         if (auto_save_code) {
-            window.editor.addListener('didType', () => {
+            DID_CHANGE_EVENT = window.editor.model.onDidChangeContent((event) => {
                 saveCode(window.editor.getValue());
             });
         } else {
-            window.editor.removeListener('didType', () => {
-                saveCode(window.editor.getValue());
-            });
+            DID_CHANGE_EVENT.dispose();
         }
         $.ajax({
             type: 'put',
