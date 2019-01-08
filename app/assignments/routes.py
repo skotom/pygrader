@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 @bp.route('/assignment/<int:id>', methods=['GET', 'POST'])
 @login_required
 def assignment(id):
-    assignment = Assignment.query.filter_by(id=id).first()
+    assignment = Assignment.query.filter_by(id=id).first_or_404()
     return render_template('assignments/assignment.html',
                            assignment=assignment)
 
@@ -102,9 +102,10 @@ def save_file():
 
         if file and allowed_file(file.filename):
             filename = secure_filename('{}.py'.format(tab))
+            #this is repeated move to separated function
             user_path = os.path.join(
-                current_app.config['UPLOAD_FOLDER'], current_user.username,
-                course.title, str(assignment.id))
+                current_app.config['UPLOAD_FOLDER'], str(current_user.id),
+                str(course.id), str(assignment.id))
 
             if not os.path.exists(user_path):
                 os.makedirs(user_path)
@@ -175,8 +176,8 @@ def save_code(assignment_id):
 
         filename = secure_filename('{}.py'.format(tab))
         user_path = os.path.join(
-            current_app.config['UPLOAD_FOLDER'], current_user.username,
-            course.title, str(assignment.id))
+            current_app.config['UPLOAD_FOLDER'], str(current_user.id),
+            str(course.id), str(assignment.id))
 
         if not os.path.exists(user_path):
             os.makedirs(user_path)

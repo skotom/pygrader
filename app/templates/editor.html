@@ -39,7 +39,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Modal Header</h4>
+                <h4 class="modal-title">Upload file</h4>
             </div>
             <div class="modal-body">
                 <form id="fileForm" method="post">
@@ -165,7 +165,8 @@
     }
 
     function initEditor(code = '') {
-        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
+        require.config({ waitSeconds: 200,
+            paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 
         let proxy = URL.createObjectURL(new Blob([`
@@ -200,9 +201,9 @@
             data: { code: code, tab: tab },
             url: '{{url_for('assignments.save_code', assignment_id=assignment.id)}}',
             success: function (response) {
+                alert(response);
             },
             error: function () {
-
             }
 
         })
