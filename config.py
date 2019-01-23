@@ -15,7 +15,7 @@ class Config(object):
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    ADMINS = ['admin@pygrader.science']
+    ADMINS = ['support@pygrader.science']
     UPLOAD_FOLDER = os.environ.get(
         'UPLOAD_FOLDER') or os.path.join(basedir, 'uploads')
     ALLOWED_EXTENSIONS = set(['py'])

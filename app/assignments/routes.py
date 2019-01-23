@@ -64,8 +64,8 @@ def editor(assignment_id):
     tab = request.args.get('tab')
     code = ''
 
-    if current_user.role.name == 'teacher':
-        assignment = Assignment.query.filter_by(id=assignment_id).first()
+    assignment = Assignment.query.filter_by(id=assignment_id).first()
+    if current_user.role.name in ['teacher', 'admin'] :
         if tab == 'solution':
             solution = assignment.solution
             solution_code = read_file(
@@ -75,8 +75,11 @@ def editor(assignment_id):
             test = assignment.test
             test_code = read_file(test.code.path) if test else ''
             code = test_code
-    # else:
-        # get user assignment data
+    else:
+        solution = assignment.solution
+        solution_code = read_file(
+            solution.code.path) if solution else ''
+        code = solution_code
 
     return render_template('editor.html', assignment=assignment, code=code)
 

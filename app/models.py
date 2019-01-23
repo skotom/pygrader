@@ -79,13 +79,9 @@ class Role(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     name = db.Column(db.String(50), unique=True)
 
-
 class Course(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     title = db.Column(db.String(100), unique=True)
-    creator_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
-    creator = db.relationship('User')
-
     users = db.relationship(
         'User', secondary=enrollments,
         primaryjoin=(enrollments.c.course_id == id),
@@ -121,16 +117,13 @@ class Test(db.Model):
 
 class Solution(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
-    user = db.relationship('User')
     code_id = db.Column(db.Integer(), db.ForeignKey('code.id'))
     code = db.relationship('Code')
-    is_completed = db.Column(db.Boolean)
 
     def set_code(self, code):
         self.code = code
 
-
+# Possible problems with different formatting in windows and unix
 class Code(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     path = db.Column(db.String(255))

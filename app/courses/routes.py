@@ -1,7 +1,7 @@
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 from app import db
-from app.courses.forms import AddCourseForm, EditCourseForm
+from app.courses.forms import AddCourseForm
 from app.models import Course, Assignment
 from app.courses import bp
 
@@ -10,10 +10,10 @@ from app.courses import bp
 @login_required
 def courses():
     if(current_user.role.name == 'teacher'):
-        courses = Course.query.filter_by(creator_id=current_user.id)
+        courses = current_user.courses
     else:
         courses = Course.query.all()
-    return render_template('courses/courses.html', courses=courses)
+    return render_template('courses/courses.html', courses=courses, title="My courses")
 
 
 @bp.route('/course/<int:id>', methods=['GET'])
@@ -29,8 +29,11 @@ def course(id):
 def add_course():
     form = AddCourseForm()
     if form.validate_on_submit():
-        course = Course(title=form.title.data, creator_id=current_user.id)
+        course = Course(title=form.title.data)
         db.session.add(course)
+        db.session.commit()
+
+        current_user.enroll(course)
         db.session.commit()
         flash('Successfully added new course.')
         return redirect(url_for('courses.course', id=course.id))
@@ -43,7 +46,7 @@ def add_course():
 @login_required
 def edit_course(id):
     course = Course.query.filter_by(id=id).first()
-    form = EditCourseForm()
+    form = AddCourseForm()
     if form.validate_on_submit():
         course.title = form.title.data
         db.session.commit()
@@ -53,3 +56,15 @@ def edit_course(id):
         form.title.data = course.title
     return render_template('courses/edit_course.html', title='Edit course',
                            form=form)
+
+@bp.route('/course/<int:id>/users', methods=['GET', 'POST'])
+@login_required
+def users(id):
+    course  = Course.query.filter_by(id=id).first()
+    users = course.users
+
+    if(current_user.role.name == 'teacher' and current_user in users):
+        return render_template('courses/users.html', title='Course users', 
+                            users=users, course=course)
+
+
