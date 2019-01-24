@@ -2,7 +2,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 from app import db
 from app.courses.forms import AddCourseForm
-from app.models import Course, Assignment
+from app.models import Course, Assignment, User
 from app.courses import bp
 
 
@@ -66,5 +66,41 @@ def users(id):
     if(current_user.role.name == 'teacher' and current_user in users):
         return render_template('courses/users.html', title='Course users', 
                             users=users, course=course)
+
+@bp.route('/course/<int:id>/enrolling', methods=['GET', 'POST'])
+@login_required
+def enrolling(id):
+    course  = Course.query.filter_by(id=id).first()
+    enrolled_users = course.users
+    all_users = db.session.query(User).all()
+    not_enrolled_users = [user for user in all_users  if user not in enrolled_users]
+
+    if(current_user.role.name == 'teacher' and current_user in enrolled_users):
+        return render_template('courses/enrolling.html', title='Enroll users', 
+                            users=not_enrolled_users, course=course)
+    #Handle unauthorized
+@bp.route('/course/<int:id>/enroll/<int:user_id>', methods=['GET', 'POST'])
+def enroll(id, user_id):
+    course  = Course.query.filter_by(id=id).first()
+    user  = User.query.filter_by(id=user_id).first()
+    user.enroll(course)
+    db.session.commit()
+    flash("Succesfully enrolled {} into {}".format(user.username, course.title))
+
+    return redirect(url_for('courses.users', id=id))
+
+@bp.route('/course/<int:id>/ban/<int:user_id>', methods=['GET', 'POST'])
+def ban(id, user_id):
+    # you can't ban yourself
+    course  = Course.query.filter_by(id=id).first()
+    user  = User.query.filter_by(id=user_id).first()
+    if(user != current_user):
+        user.withdraw(course)
+        db.session.commit()
+        flash("Succesfully banned {} from {}".format(user.username, course.title))
+    else:
+        flash("You can't ban yourself.")
+    return redirect(url_for('courses.users', id=id))
+
 
 

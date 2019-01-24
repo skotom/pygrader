@@ -1,10 +1,5 @@
 {% extends 'base.html' %} {% block app_content %}
-<h1>Users enrolled in <b>{{course.title}}</b></h1>
-<div class="row">
-    <div class="col-md-10">
-        <a href="{{url_for('courses.enrolling', id=course.id)}}" class="btn btn-default">Enroll user</a>
-    </div>
-</div>
+<h1>Enroll users in <b>{{course.title}}</b></h1>
 <div class="table-responsive"> 
     <table class="table table-bordered">
         <thead>
@@ -21,7 +16,7 @@
                     <td> {{ user.username }}</td>
                     <td> {{ user.email }}</td>
                     <td> {{ user.role.name }}</td>
-                    <td><a href="{{url_for('courses.ban', id=course.id, user_id=user.id)}}">Ban</a></td>
+                    <td><a href="{{url_for('courses.enroll', id=course.id, user_id=user.id)}}">Enroll</a></td>
                 </tr>
                 {% endfor %}
         </tbody>
