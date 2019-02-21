@@ -12,7 +12,7 @@
     <div class="col-md-8">
         <div id="tabArea">
             <span id="solution" class="tab">Solution</span>
-            <span id="test" class="tab">Test</span>
+            {% if current_user.role.name in ['teacher', 'admin'] %}<span id="test" class="tab">Test</span>{% endif %}
             <div title="Upload" class="action upload" id="uploadFileBtn">
                 <span class="glyphicon glyphicon-cloud-upload"></span> Upload file
             </div>

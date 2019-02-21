@@ -105,7 +105,7 @@ def save_file():
 
         if file and allowed_file(file.filename):
             filename = secure_filename('{}.py'.format(tab))
-            #this is repeated move to separated function
+            #TODO@tome this is repeated move to separated function
             user_path = os.path.join(
                 current_app.config['UPLOAD_FOLDER'], str(current_user.id),
                 str(course.id), str(assignment.id))

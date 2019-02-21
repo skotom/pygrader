@@ -19,4 +19,10 @@
         <a href="{{url_for('assignments.assignment', id=assignment.id)}}">{{ assignment.title }}</a>
     </div>
 </div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+       No assignments
+    </div>
+</div>
 {% endfor %} {% endblock %}
