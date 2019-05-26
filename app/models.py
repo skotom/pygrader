@@ -84,9 +84,8 @@ class Course(db.Model):
     title = db.Column(db.String(100), unique=True)
     users = db.relationship(
         'User', secondary=enrollments,
-        primaryjoin=(enrollments.c.course_id == id),
+        primaryjoin=(enrollments.c.course_id == id), 
         backref=db.backref('enrollments', lazy='dynamic'), lazy='dynamic')
-
 
 class Assignment(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
@@ -96,11 +95,6 @@ class Assignment(db.Model):
     description = db.Column(db.Text)
     test_id = db.Column(db.Integer(), db.ForeignKey('test.id'))
     test = db.relationship('Test')
-    solution_id = db.Column(db.Integer(), db.ForeignKey('solution.id'))
-    solution = db.relationship('Solution')
-
-    def set_solution(self, solution):
-        self.solution = solution
 
     def set_test(self, test):
         self.test = test
@@ -119,9 +113,21 @@ class Solution(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     code_id = db.Column(db.Integer(), db.ForeignKey('code.id'))
     code = db.relationship('Code')
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
+    user = db.relationship('User')
+    is_default = db.Column(db.Boolean(), default=False)
+    assignment_id = db.Column(db.Integer(), db.ForeignKey('assignment.id'))
+    assignment = db.relationship('Assignment')
+    is_submitted = db.Column(db.Boolean(), default=False)
+    
+    def set_assignment(self, assignment):
+        self.assignment = assignment
 
     def set_code(self, code):
         self.code = code
+
+    def set_user(self, user):
+        self.user = user
 
 # Possible problems with different formatting in windows and unix
 class Code(db.Model):

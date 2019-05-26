@@ -30,7 +30,7 @@
 
 <div class="row">
     <div class="col-md-12 text-right">
-        <button class="btn btn-default">Turn in</button>
+        <button id="submitSolutionBtn" class="btn btn-default">Turn in</button>
     </div>
 </div>
 
@@ -151,7 +151,7 @@
             formData.append('assignment_id', '{{ assignment.id }}');
             formData.append('tab', $('.active').attr('id'));
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '{{ url_for('assignments.save_file') }}', true);
+            xhr.open('POST', '{{ url_for('assignments.upload_file') }}', true);
 
             xhr.onload = function () {
                 if (xhr.status === 200) {
@@ -196,17 +196,34 @@
     }
 
     function saveCode(code) {
+
         var tab = $(".active").attr("id");
         $.ajax({
             type: 'post',
             data: { code: code, tab: tab },
             url: '{{url_for('assignments.save_code', assignment_id=assignment.id)}}',
             success: function (response) {
-                console.log(response);
+                if(!localStorage.getItem('solutionId')){
+                    getCurrentSolution();
+                }
+                changeSubmitSolutionButtonState();
             },
             error: function () {
             }
         })
+    }
+
+    function getCurrentSolution(){
+        $.ajax({
+            type: 'get',
+            url: '{{url_for('solutions.active_solution', assignment_id=assignment.id)}}',
+            success: function (response) {
+                localStorage.setItem('solutionId', response.id);
+                changeSubmitSolutionButtonState();
+            },
+            error: function () {
+            }
+        });
     }
 
     function runCode(code) {
@@ -220,6 +237,22 @@
 
             }
         });
+    }
+
+    function submitSolution(){
+        const solutionId = localStorage.getItem('solutionId');
+        $.ajax({
+            type: 'post',
+            data: {solutionId: solutionId},
+            url: '{{url_for('solutions.submit')}}',
+            success: function(response){
+
+            },
+            error: function(){
+
+            }
+        });
+        localStorage.removeItem("solution");
     }
 
     function init(activeTabId) {
@@ -267,21 +300,34 @@
         localStorage.removeItem("test");
     }
 
+    function changeSubmitSolutionButtonState(){
+        const submitSolutionBtn = $('#submitSolutionBtn');
+        if(localStorage.getItem('solutionId')){
+            submitSolutionBtn.attr('disabled', 'false');
+        }else{
+            submitSolutionBtn.attr('disabled', 'true');
+        }
+    }
+
     $(document).ready(function () {
         cleanLocalStorage();
+        const solutionId = '{{ solution.id if solution else "" }}';
+        localStorage.setItem("solutionId", solutionId);
 
-        $("#uploadFileBtn").click(function () {
-            $("#uploadFileModal").modal();
+        $('#uploadFileBtn').click(function () {
+            $('#uploadFileModal').modal();
         });
 
-        $("#fileForm").on("submit", function () {
-            $(".modal").modal("hide");
+        $('#fileForm').on('submit', function () {
+            $('.modal').modal('hide');
         });
 
         $('#auto_save_code').click(function () {
             setAutoSaveCode(this.checked);
         });
 
-
+        $('#submitSolutionBtn').click(function () {
+           submitSolution(); 
+        });
     });
 </script>

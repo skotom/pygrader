@@ -1,5 +1,6 @@
-{% extends 'base.html' %} {% block app_content %} {% if current_user.role.name == 'teacher' %}
+{% extends 'base.html' %} {% block app_content %}
 <h1>{{title}}</h1>
+{% if current_user.role.name in ['teacher', 'admin'] %}
 <div class="row">
     <div class="col-md-12">
         <a href="{{url_for('courses.add_course')}}" class="btn btn-default">Add new</a>

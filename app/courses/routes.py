@@ -2,7 +2,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 from app import db
 from app.courses.forms import AddCourseForm
-from app.models import Course, Assignment, User
+from app.models import Course, Assignment, User, Solution
 from app.courses import bp
 
 
@@ -13,7 +13,7 @@ def courses():
         courses = current_user.courses
     else:
         courses = Course.query.all()
-    return render_template('courses/courses.html', courses=courses, title="My courses")
+    return render_template('courses/courses.html', courses=courses, title="Courses")
 
 
 @bp.route('/course/<int:id>', methods=['GET'])
@@ -21,6 +21,15 @@ def courses():
 def course(id):
     course = Course.query.filter_by(id=id).first()
     assignments = Assignment.query.filter_by(course=course)
+    if current_user.role.name not in ['teacher', 'admin']:
+        completed_assignments = []
+        for assignment in assignments:
+            default_solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=True).first()
+            if default_solution and assignment.test:
+                completed_assignments.append(assignment)
+        
+        assignments = completed_assignments
+
     return render_template('courses/course.html', assignments=assignments, course=course)
 
 
@@ -63,7 +72,7 @@ def users(id):
     course  = Course.query.filter_by(id=id).first()
     users = course.users
 
-    if(current_user.role.name == 'teacher' and current_user in users):
+    if(current_user.role.name in ['teacher', 'admin'] and current_user in users):
         return render_template('courses/users.html', title='Course users', 
                             users=users, course=course)
 
@@ -75,7 +84,7 @@ def enrolling(id):
     all_users = db.session.query(User).all()
     not_enrolled_users = [user for user in all_users  if user not in enrolled_users]
 
-    if(current_user.role.name == 'teacher' and current_user in enrolled_users):
+    if(current_user.role.name in ['teacher', 'admin'] and current_user in enrolled_users):
         return render_template('courses/enrolling.html', title='Enroll users', 
                             users=not_enrolled_users, course=course)
     #Handle unauthorized

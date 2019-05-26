@@ -40,11 +40,13 @@ def create_app(config_class=Config):
     from app.main import bp as main_bp
     from app.courses import bp as courses_bp
     from app.assignments import bp as assignments_bp
+    from app.solutions import bp as solutions_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(courses_bp)
     app.register_blueprint(assignments_bp)
-
+    app.register_blueprint(solutions_bp)
+    
     if not app.debug and not app.testing:
         if not os.path.exists('logs'):
             os.mkdir('logs')
