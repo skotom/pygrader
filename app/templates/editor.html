@@ -303,8 +303,10 @@
     function changeSubmitSolutionButtonState(){
         const submitSolutionBtn = $('#submitSolutionBtn');
         if(localStorage.getItem('solutionId')){
-            submitSolutionBtn.attr('disabled', 'false');
+            console.log("WHAT");
+            submitSolutionBtn.removeAttr('disabled');
         }else{
+            console.log("NOT");
             submitSolutionBtn.attr('disabled', 'true');
         }
     }

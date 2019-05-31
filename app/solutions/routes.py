@@ -16,7 +16,8 @@ def active_solution(assignment_id):
     else:
         solution = Solution.query.filter_by(assignment_id=assignment_id,
         is_default=False, user_id=current_user.id, is_submitted=False).first_or_404()
-    resp = {id: solution.id}
+    resp = {'id': solution.id}
+    print(resp)
     return jsonify(resp)
 
 @bp.route("/submit", methods=["POST"])
