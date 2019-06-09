@@ -2,18 +2,19 @@
 <h1><b>{{course.title}}</b> assignments</h1>
 <div class="row">
     {% if current_user.role.name in ['teacher', 'admin'] %}
-    <div class="col-md-10">
-        <a href="{{url_for('assignments.add_assignment', course_id=course.id)}}" class="btn btn-default">Add
+    <div class="col-md-2">
+        <a href="{{url_for('assignments.add_assignment', course_id=course.id)}}" class="btn btn-primary width100">Add
             assignment</a>
     </div>
     <div class="col-md-2">
-        <a href="{{url_for('courses.edit_course', id=course.id)}}" class="btn btn-default">Edit</a>
+        <a href="{{url_for('courses.edit_course', id=course.id)}}" class="btn btn-primary width100">Edit</a>
     </div>
     <div class="col-md-2">
-        <a href="{{url_for('courses.users', id=course.id)}}" class="btn btn-default">Users</a>
+        <a href="{{url_for('courses.users', id=course.id)}}" class="btn btn-primary width100">Users</a>
     </div>
     {% endif %}
 </div>
+<br>
 <div class="table-responsive">
     <table class="table table-bordered">
         <thead>

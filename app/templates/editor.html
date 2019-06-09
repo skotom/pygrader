@@ -1,4 +1,4 @@
-<script src="{{ url_for('static', filename='require.js') }}"></script>
+<script src="{{ url_for('static', filename='js/require.js') }}"></script>
 <div class="row">
     <div class="col-md-offset-10 col-md-2 text-right">
         <div class="checkbox">
@@ -12,7 +12,10 @@
     <div class="col-md-8">
         <div id="tabArea">
             <span id="solution" class="tab">Solution</span>
-            {% if current_user.role.name in ['teacher', 'admin'] %}<span id="test" class="tab">Test</span>{% endif %}
+            {% if current_user.role.name in ['teacher', 'admin'] %}
+            <span id="test" class="tab">Test</span>
+            <span id="template" class="tab">Template</span>
+            {% endif %}
             <div title="Upload" class="action upload" id="uploadFileBtn">
                 <span class="glyphicon glyphicon-cloud-upload"></span> Upload file
             </div>
@@ -28,11 +31,13 @@
     <div id="result" class="col-md-4"></div>
 </div>
 
+{% if current_user.role.name == 'student' %}
 <div class="row">
     <div class="col-md-12 text-right">
         <button id="submitSolutionBtn" class="btn btn-default">Turn in</button>
     </div>
 </div>
+{% endif%}
 
 <div class="modal" id="uploadFileModal" role="dialog">
     <div class="modal-dialog">
@@ -155,9 +160,10 @@
 
             xhr.onload = function () {
                 if (xhr.status === 200) {
+                    renderMessage(JSON.parse(xhr.response));
                     loadEditor($(".active").attr('id'));
                 } else {
-                    alert('An error occurred!');
+                    renderMessage({message: 'An error occured', status: 1});
                 }
             };
 
@@ -167,14 +173,15 @@
 
     function initEditor(code = '') {
         require.config({ waitSeconds: 200,
-            paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' } });
+            paths: { 'vs': '{{ url_for('static', filename = 'monacoeditor/min/vs') }}' } });
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 
         let proxy = URL.createObjectURL(new Blob([`
             self.MonacoEnvironment = {
-		        baseUrl: 'https://unpkg.com/monaco-editor@0.8.3/min/'
-	        };
-	        importScripts('https://unpkg.com/monaco-editor@0.8.3/min/vs/base/worker/workerMain.js');`
+		        baseUrl: '{{ url_for('static', filename = 'monacoeditor/min') }}'
+            };
+            {{ url_for('static', filename = 'monacoeditor/min/vs/base/worker/workerMain.js') }}
+	        importScripts('{{ url_for('static', filename = 'monacoeditor/min/vs/base/worker/workerMain.js') }}');`
         ], { type: 'text/javascript' }));
 
         require(["vs/editor/editor.main"], function () {
@@ -246,10 +253,8 @@
             data: {solutionId: solutionId},
             url: '{{url_for('solutions.submit')}}',
             success: function(response){
-
             },
             error: function(){
-
             }
         });
         localStorage.removeItem("solution");
@@ -303,10 +308,8 @@
     function changeSubmitSolutionButtonState(){
         const submitSolutionBtn = $('#submitSolutionBtn');
         if(localStorage.getItem('solutionId')){
-            console.log("WHAT");
             submitSolutionBtn.removeAttr('disabled');
         }else{
-            console.log("NOT");
             submitSolutionBtn.attr('disabled', 'true');
         }
     }

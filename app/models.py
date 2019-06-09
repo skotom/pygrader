@@ -95,10 +95,14 @@ class Assignment(db.Model):
     description = db.Column(db.Text)
     test_id = db.Column(db.Integer(), db.ForeignKey('test.id'))
     test = db.relationship('Test')
+    template_id = db.Column(db.Integer(), db.ForeignKey('template.id'))
+    template = db.relationship('Template')
 
     def set_test(self, test):
         self.test = test
 
+    def set_template(self, template):
+        self.template = template
 
 class Test(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
@@ -108,6 +112,13 @@ class Test(db.Model):
     def set_code(self, code):
         self.code = code
 
+class Template(db.Model):
+    id = db.Column(db.Integer(), primary_key=True, unique=True)
+    code_id = db.Column(db.Integer(), db.ForeignKey('code.id'))
+    code = db.relationship('Code')
+
+    def set_code(self, code):
+        self.code = code
 
 class Solution(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)

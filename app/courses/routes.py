@@ -25,7 +25,7 @@ def course(id):
         completed_assignments = []
         for assignment in assignments:
             default_solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=True).first()
-            if default_solution and assignment.test:
+            if default_solution and assignment.test and assignment.template:
                 completed_assignments.append(assignment)
         
         assignments = completed_assignments

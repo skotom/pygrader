@@ -5,10 +5,11 @@ from flask import render_template, flash, redirect, url_for, request, \
     current_app
 from flask_login import login_required, current_user
 from app import db
-from app.assignments.forms import AddAssignmentForm
-from app.models import Course, Assignment, Solution, Test, Code
+
+from app.models import Course, Assignment, Solution, Test, Code, Template
 from app.assignments import bp
 from werkzeug.utils import secure_filename
+from flask import jsonify
 import datetime
 import uuid
 
@@ -24,20 +25,15 @@ def assignment(id):
 @login_required
 def add_assignment(course_id):
     course = Course.query.filter_by(id=course_id).first_or_404()
-    form = AddAssignmentForm()
-    if form.validate_on_submit():
-        assignment = Assignment(title=form.title.data,
-                                description=form.description.data,
-                                course=course)
 
-        db.session.add(assignment)
-        db.session.commit()
-        flash("Successfully added new assignment to {}".format(course.title))
-        return redirect(url_for("assignments.assignment", id=assignment.id))
+    assignment = Assignment(title=request.form["title"], description=request.form["description"], course=course)
 
-    return render_template("assignments/add_assignment.html",
-                           title="Add assignment",
-                           form=form)
+    db.session.add(assignment)
+    db.session.commit()
+    flash("Successfully added new assignment to {}".format(course.title))
+    return redirect(url_for("assignments.assignment", id=assignment.id))
+
+    return render_template("assignments/add_assignment.html", title="Add assignment", course=course)
 
 
 @bp.route("/assignment/<int:id>/edit", methods=["GET", "POST"])
@@ -50,7 +46,7 @@ def edit_assignment(id):
         assignment.description = form.description.data
         db.session.commit()
         flash("Successfully saved changes")
-        return redirect(url_for("assignments.assignment", id=id))
+        return redirect(url_for("assignments.assignment", id=id, message="Successfully saved changes"))
     elif request.method == "GET":
         form.title.data = assignment.title
         form.description.data = assignment.description
@@ -67,45 +63,59 @@ def editor(assignment_id):
     solution = None
     
     assignment = Assignment.query.filter_by(id=assignment_id).first()
+
+    template = assignment.template
+    template_code = read_file(template.code.path) if template else ""
+    
     if current_user.role.name in ["teacher", "admin"]:
         if tab == "solution":
             solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=True).first()
-        else:
+        elif tab == "test":
             test = assignment.test
             test_code = read_file(test.code.path) if test else ""
             code = test_code
+        else:
+            template = assignment.template
+            template_code = read_file(template.code.path) if template else ""
+            code = template_code
+            
     else:
         solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, user_id=current_user.id).first()
 
     if solution:
         solution_code = read_file(solution.code.path) if solution else ""
         code = solution_code
+    if code == "":
+        code = template_code
 
     return render_template("editor.html", assignment=assignment, code=code, solution=solution)
 
 
-@bp.route("/upload_file", methods=["POST"])
+@bp.route("/upload_file", methods=["POST", "GET"])
 @login_required
 def upload_file():
+    resp = {}
     if request.method == "POST":
         tab = request.form.get("tab")
         assignment_id = request.form.get("assignment_id")
 
         if "file" not in request.files:
-            flash("No file part")
-            return redirect(request.url)
-
+            resp = {"message": "No file part", "status": 1}
+            return jsonify(resp)
+    
         file = request.files["file"]
 
         if file.filename == "":
-            flash("No selected file")
-            return redirect(request.url)
+            resp= {"message":"No selected file", "status": 1}
+            return jsonify(resp)
 
         if file and allowed_file(file.filename):
-            code = file.read()
+            code = file.read().decode("utf-8")
+            print(code)
             save_code_to_file(assignment_id, tab, code)
-
-    return "OK"
+    else:
+        resp= {"message":"No selected file", "status": 1}
+        return jsonify(resp)
 
 
 def save_solution(assignment, path):
@@ -161,6 +171,27 @@ def save_test(assignment, path):
     db.session.commit()
 
 
+def save_template(assignment, path):
+    code = Code()
+
+    if assignment.template:
+        template = assignment.template
+        if template.code:
+            code = template.code
+        else:
+            code.path = path
+    else:
+        template = Template()
+        assignment.set_template(template)
+        code.path = path
+
+    template.set_code(code)
+    db.session.add(code)
+    db.session.add(template)
+    db.session.add(assignment)
+    db.session.commit()
+
+
 @bp.route("/save_code/<int:assignment_id>", methods=["POST"])
 @login_required
 def save_code(assignment_id):
@@ -207,6 +238,8 @@ def save_code_to_file(assignment_id, tab, code):
             filename = get_filename_for_existing_solution(assignment)
         elif tab == "test":
             filename = get_filename_for_existing_test(assignment)
+        elif tab == "template":
+            filename = get_filename_for_existing_template(assignment)
 
         if filename != "":
             path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
@@ -224,6 +257,8 @@ def save_code_to_file(assignment_id, tab, code):
             save_solution(assignment, filename)
         elif tab == "test":
             save_test(assignment, filename)
+        elif tab == "template":
+            save_template(assignment, filename)
 
 
 def get_filename_for_existing_solution(assignment):
@@ -251,6 +286,16 @@ def get_filename_for_existing_test(assignment):
             filename = test.code.path
     return filename
 
+
+def get_filename_for_existing_template(assignment):
+    filename = ""
+    template = None
+    if current_user.role.name in ["teacher", "admin"]:
+        template = assignment.template
+        if template:
+            filename = template.code.path
+    return filename
+
 def execute_code(code):
     resp = ""
     try:
@@ -270,8 +315,15 @@ def execute_code(code):
         resp = str(eof)
     except SyntaxError as se:
         resp = str(se)
+    except AssertionError as asse:
+        resp = str(asse)
+    except NameError as ne:
+        resp = str(ne)
+    except TypeError as te:
+        resp = str(te)
     except:
         resp = "An error occurred."
+    
     return resp
 
 def read_file(path):

@@ -1,8 +1,18 @@
-{% extends "base.html" %} {% import 'bootstrap/wtf.html' as wtf %} {% block app_content %}
+{% extends "base.html" %} {% block app_content %}
 <h1>{{'Add assignment'}}</h1>
 <div class="row">
     <div class="col-md-4">
-        {{ wtf.quick_form(form) }}
+        <form action="{{url_for('assignments.add_assignment', course_id=course.id)}}" method="POST">
+            <div class="form-group">
+                <label for="titleInput">Title</label>
+                <input id="titleInput" type="text" name="title" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="descriptionTextarea">Description</label>
+                <textarea id="descriptionTextarea" class="form-control" name="description"></textarea>
+            </div>
+            <button class="btn btn-md btn-primary" type="submit">Save</button>
+        </form>
     </div>
 </div>
 {% endblock %}
