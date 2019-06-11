@@ -1,16 +1,35 @@
-{% extends 'base.html' %} {% import 'bootstrap/wtf.html' as wtf %} {% block app_content %}
-<h1>{{'Sign In'}}</h1>
-<div class="row">
-    <div class="col-md-4">
-        {{ wtf.quick_form(form) }}
+{% extends 'base_no_nav.html' %} 
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+{% block app_content %}
+<form action="{{ url_for('auth.login') }}" method="POST" id="loginForm" class="form-signin" autocomplete="off">
+    <asset:image class="mb-4" src="logo.png" width="72" height="72" />
+    <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+    <label for="username" class="sr-only">Username:</label>
+    <input type="text" class="form-control" name="username" id="username" />
+
+    <label for="password" class="sr-only">Password:</label>
+    <input type="password" class="form-control" name="password" id="password" />
+
+    <div class="checkbox mb-3">
+        <label>
+            <input type="checkbox" name="remember_me" id="remember_me">
+                Remember me
+        </label>
     </div>
-</div>
+    <input type="submit" id="submit" class="btn btn-lg btn-primary btn-block"
+        value="Login" />
+    <div class="mb-3">
+        New User? <a href="{{ url_for('auth.register') }}"> Click to Register!</a>
+    </div>
+    
+    <div class="mb-3">
+        Forgot Your Password?<a href="{{ url_for('auth.reset_password_request') }}">Click to Reset It</a>
+    </div>
+
+</form>
 <br>
-<p>{{'New User?'}}
-    <a href="{{ url_for('auth.register') }}">{{'Click to Register!'}}</a>
-</p>
-<p>
-    {{'Forgot Your Password?'}}
-    <a href="{{ url_for('auth.reset_password_request') }}">{{'Click to Reset It'}}</a>
-</p>
+
+
 {% endblock %}
