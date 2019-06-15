@@ -36,9 +36,8 @@ def course(id):
 @bp.route('/add_course', methods=['GET', 'POST'])
 @login_required
 def add_course():
-    form = AddCourseForm()
-    if form.validate_on_submit():
-        course = Course(title=form.title.data)
+    if request.method == 'POST':
+        course = Course(title=request.form['title'])
         db.session.add(course)
         db.session.commit()
 
@@ -47,24 +46,21 @@ def add_course():
         flash('Successfully added new course.')
         return redirect(url_for('courses.course', id=course.id))
 
-    return render_template('courses/add_course.html', title='Add course',
-                           form=form)
+    return render_template('courses/add_course.html', title='Add course',)
 
 
-@bp.route('/course/<int:id>/edit', methods=['GET', 'POST'])
+@bp.route('/course/<int:id>/edit', methods=['GET', 'POST', 'PUT'])
 @login_required
 def edit_course(id):
     course = Course.query.filter_by(id=id).first()
-    form = AddCourseForm()
-    if form.validate_on_submit():
-        course.title = form.title.data
+
+    if request.method == 'POST':
+        course.title = request.form['title']
         db.session.commit()
         flash('Successfully saved changes.')
         return redirect(url_for('courses.course', id=id))
-    elif request.method == 'GET':
-        form.title.data = course.title
-    return render_template('courses/edit_course.html', title='Edit course',
-                           form=form)
+
+    return render_template('courses/edit_course.html', title='Edit course', course=course)
 
 @bp.route('/course/<int:id>/users', methods=['GET', 'POST'])
 @login_required

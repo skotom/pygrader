@@ -3,7 +3,7 @@ from werkzeug.urls import url_parse
 from flask_login import login_user, logout_user, current_user
 from app import db
 from app.auth import bp
-from app.auth.forms import LoginForm, RegistrationForm, \
+from app.auth.forms import RegistrationForm, \
     ResetPasswordRequestForm, ResetPasswordForm
 from app.models import User, Role
 from app.auth.email import send_password_reset_email

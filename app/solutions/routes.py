@@ -17,14 +17,13 @@ def active_solution(assignment_id):
         solution = Solution.query.filter_by(assignment_id=assignment_id,
         is_default=False, user_id=current_user.id, is_submitted=False).first_or_404()
     resp = {'id': solution.id}
-    print(resp)
     return jsonify(resp)
 
 @bp.route("/submit", methods=["POST"])
 @login_required
 def submit():
     solution_id = request.form.get('solutionId')
-    solution = Solution.query.filter_by(id=solution_id)
+    solution = Solution.query.filter_by(id=solution_id).first()
     solution.is_submitted = True
     db.session.add(solution)
     db.session.commit()

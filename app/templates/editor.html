@@ -1,6 +1,6 @@
 <script src="{{ url_for('static', filename='js/require.js') }}"></script>
 <div class="row">
-    <div class="col-md-offset-10 col-md-2 text-right">
+    <div class="offset-md-10 col-md-2 text-right">
         <div class="checkbox">
             <label>
                 <input type="checkbox" name="auto_save_code" {% if current_user.auto_save_code %} checked="true" {% endif%} id="auto_save_code"> Auto-save
@@ -34,7 +34,7 @@
 {% if current_user.role.name == 'student' %}
 <div class="row">
     <div class="col-md-12 text-right">
-        <button id="submitSolutionBtn" class="btn btn-default">Turn in</button>
+        <button id="submitSolutionBtn" disabled class="btn btn-success">Turn in</button>
     </div>
 </div>
 {% endif%}
@@ -53,7 +53,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
             </div>
         </div>
 
@@ -71,7 +71,7 @@
         font-family: "Courier new";
         margin-top: 30px;
         border: 1px solid #999;
-        height: 400px;
+        /* height: 400px; */
         white-space: pre-wrap;
     }
 
@@ -172,16 +172,23 @@
     }
 
     function initEditor(code = '') {
-        require.config({ waitSeconds: 200,
-            paths: { 'vs': '{{ url_for('static', filename = 'monacoeditor/min/vs') }}' } });
+        require.config({
+            waitSeconds: 200,
+            paths: { 'vs': 'https://unpkg.com/monaco-editor@0.8.3/min/vs' }
+        });
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+        // let proxy = URL.createObjectURL(new Blob([`
+        //     self.MonacoEnvironment = {
+		//         baseUrl: "{{ url_for('static', filename = 'monacoeditor/min') }}"
+        //     };`
+        // ], { type: 'text/javascript' }));
 
         let proxy = URL.createObjectURL(new Blob([`
             self.MonacoEnvironment = {
-		        baseUrl: '{{ url_for('static', filename = 'monacoeditor/min') }}'
-            };
-            {{ url_for('static', filename = 'monacoeditor/min/vs/base/worker/workerMain.js') }}
-	        importScripts('{{ url_for('static', filename = 'monacoeditor/min/vs/base/worker/workerMain.js') }}');`
+		        baseUrl: 'https://unpkg.com/monaco-editor@0.8.3/min/'
+	        };
+	        importScripts('https://unpkg.com/monaco-editor@0.8.3/min/vs/base/worker/workerMain.js');`
         ], { type: 'text/javascript' }));
 
         require(["vs/editor/editor.main"], function () {
@@ -203,8 +210,7 @@
     }
 
     function saveCode(code) {
-
-        var tab = $(".active").attr("id");
+        var tab = $(".tab.active").attr("id");
         $.ajax({
             type: 'post',
             data: { code: code, tab: tab },
@@ -223,7 +229,7 @@
     function getCurrentSolution(){
         $.ajax({
             type: 'get',
-            url: '{{url_for('solutions.active_solution', assignment_id=assignment.id)}}',
+            url: "{{url_for('solutions.active_solution', assignment_id=assignment.id)}}",
             success: function (response) {
                 localStorage.setItem('solutionId', response.id);
                 changeSubmitSolutionButtonState();
@@ -264,7 +270,11 @@
         var code = `{% if code %}{{ code|safe }}{% endif %}`;
         initEditor(code);
         initFileUpload();
-
+        cleanLocalStorage();
+        console.log('What');
+        var solutionId = '{{ solution.id if solution else "" }}';
+        localStorage.setItem("solutionId", solutionId);
+        changeSubmitSolutionButtonState();
         var tab = $(".tab");
         var activeTab = $("#" + activeTabId);
         activeTab.addClass('active');
@@ -306,7 +316,7 @@
     }
 
     function changeSubmitSolutionButtonState(){
-        const submitSolutionBtn = $('#submitSolutionBtn');
+        var submitSolutionBtn = $('#submitSolutionBtn');
         if(localStorage.getItem('solutionId')){
             submitSolutionBtn.removeAttr('disabled');
         }else{
@@ -315,10 +325,6 @@
     }
 
     $(document).ready(function () {
-        cleanLocalStorage();
-        const solutionId = '{{ solution.id if solution else "" }}';
-        localStorage.setItem("solutionId", solutionId);
-
         $('#uploadFileBtn').click(function () {
             $('#uploadFileModal').modal();
         });

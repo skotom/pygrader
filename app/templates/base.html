@@ -66,7 +66,7 @@
         //     <div class="toast-body">
         //         Some text inside the toast body
         // </div>
-        </div>
+        // </div>
     }
 
     function getColorFromStatus(status) {
@@ -85,6 +85,12 @@
     $(document).ready(function () {
             $('.toast').toast('show');
         });
+        $(document).ready(function () {
+                var script = document.createElement("script");
+                script.type = "text/javascript";
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML";
+                document.getElementsByTagName("head")[0].appendChild(script);
+            });
 </script>
 {% block content %}
 <div class="container" id="messageContainer">

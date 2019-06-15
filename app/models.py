@@ -97,7 +97,7 @@ class Assignment(db.Model):
     test = db.relationship('Test')
     template_id = db.Column(db.Integer(), db.ForeignKey('template.id'))
     template = db.relationship('Template')
-
+    
     def set_test(self, test):
         self.test = test
 

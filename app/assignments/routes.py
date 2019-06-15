@@ -25,13 +25,16 @@ def assignment(id):
 @login_required
 def add_assignment(course_id):
     course = Course.query.filter_by(id=course_id).first_or_404()
-
-    assignment = Assignment(title=request.form["title"], description=request.form["description"], course=course)
-
-    db.session.add(assignment)
-    db.session.commit()
-    flash("Successfully added new assignment to {}".format(course.title))
-    return redirect(url_for("assignments.assignment", id=assignment.id))
+    if request.method == 'POST':
+        existing_assignment = Assignment.query.filter_by(title=request.form["title"]).first()
+        if existing_assignment is not None:
+            flash("Use different title")
+            return redirect(url_for('assignments.add_assignment', course_id=course.id))
+        assignment = Assignment(title=request.form["title"], description=request.form["description"], course=course)
+        db.session.add(assignment)
+        db.session.commit()
+        flash("Successfully added new assignment to {}".format(course.title))
+        return redirect(url_for("assignments.assignment", id=assignment.id))
 
     return render_template("assignments/add_assignment.html", title="Add assignment", course=course)
 
@@ -40,19 +43,16 @@ def add_assignment(course_id):
 @login_required
 def edit_assignment(id):
     assignment = Assignment.query.filter_by(id=id).first()
-    form = AddAssignmentForm()
-    if form.validate_on_submit():
-        assignment.title = form.title.data
-        assignment.description = form.description.data
+    if request.method == 'POST':
+        assignment.title = request.form['title']
+        assignment.description = request.form['description']
         db.session.commit()
         flash("Successfully saved changes")
-        return redirect(url_for("assignments.assignment", id=id, message="Successfully saved changes"))
-    elif request.method == "GET":
-        form.title.data = assignment.title
-        form.description.data = assignment.description
+        return redirect(url_for("assignments.assignment", id=id))
+
     return render_template("assignments/edit_assignment.html",
                            title="Edit assignment",
-                           form=form)
+                           assignment=assignment)
 
 
 @bp.route("/editor/<int:assignment_id>", methods=["GET"])
@@ -77,17 +77,15 @@ def editor(assignment_id):
         else:
             template = assignment.template
             template_code = read_file(template.code.path) if template else ""
-            code = template_code
-            
+            code = template_code       
     else:
-        solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, user_id=current_user.id).first()
+        solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
 
     if solution:
         solution_code = read_file(solution.code.path) if solution else ""
         code = solution_code
     if code == "":
         code = template_code
-
     return render_template("editor.html", assignment=assignment, code=code, solution=solution)
 
 
@@ -258,6 +256,7 @@ def save_code_to_file(assignment_id, tab, code):
         elif tab == "test":
             save_test(assignment, filename)
         elif tab == "template":
+            print("TEMPLATE")
             save_template(assignment, filename)
 
 

@@ -1,8 +1,14 @@
-{% extends "base.html" %} {% import 'bootstrap/wtf.html' as wtf %} {% block app_content %}
-<h1>{{'Edit assignment'}}</h1>
-<div class="row">
-    <div class="col-md-4">
-        {{ wtf.quick_form(form) }}
+{% extends "base.html" %} {% block app_content %}
+<h1>Edit assignment</h1>
+<form action="{{url_for('assignments.edit_assignment', id=assignment.id)}}" method="POST">
+    <div class="form-group">
+        <label for="titleInput">Title</label>
+        <input id="titleInput" type="text" name="title" class="form-control" value="{{assignment.title}}">
     </div>
-</div>
+    <div class="form-group">
+        <label for="descriptionTextarea">Description</label>
+        <textarea id="descriptionTextarea" class="form-control" name="description">{{assignment.description}}</textarea>
+    </div>
+    <button class="btn btn-md btn-primary" type="submit">Save</button>
+</form>
 {% endblock %}

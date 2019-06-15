@@ -1,10 +1,11 @@
-{% extends 'base.html' %} {% block app_content %}
+{% extends 'base.html' %}
+{% block app_content %}
 <h1>{{ assignment.title }}</h1>
 <p>{{ assignment.description }}</p>
 <div class="row">
     <div class="col-md-12">
         {% if current_user.role.name in ['teacher', 'admin'] %}
-        <a href="{{url_for('assignments.edit_assignment', id=assignment.id)}}" class="btn btn-default">Edit</a>
+        <a href="{{url_for('assignments.edit_assignment', id=assignment.id)}}" class="btn btn-primary">Edit</a>
         {% endif%}
     </div>
 </div>
