@@ -130,6 +130,7 @@ class Solution(db.Model):
     assignment_id = db.Column(db.Integer(), db.ForeignKey('assignment.id'))
     assignment = db.relationship('Assignment')
     is_submitted = db.Column(db.Boolean(), default=False)
+    result = db.Column(db.Integer())
     
     def set_assignment(self, assignment):
         self.assignment = assignment

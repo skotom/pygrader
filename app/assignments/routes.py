@@ -5,7 +5,6 @@ from flask import render_template, flash, redirect, url_for, request, \
     current_app
 from flask_login import login_required, current_user
 from app import db
-
 from app.models import Course, Assignment, Solution, Test, Code, Template
 from app.assignments import bp
 from werkzeug.utils import secure_filename
@@ -111,9 +110,11 @@ def upload_file():
             code = file.read().decode("utf-8")
             print(code)
             save_code_to_file(assignment_id, tab, code)
+        resp = {"message": "Succesfully uploaded file", "status": 1}
     else:
-        resp= {"message":"No selected file", "status": 1}
-        return jsonify(resp)
+        resp = {"message":"No selected file", "status": 1}
+    
+    return jsonify(resp)
 
 
 def save_solution(assignment, path):
@@ -127,7 +128,7 @@ def save_solution(assignment, path):
             solution = Solution()
             solution.is_default = True
     else:
-        solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, user_id=current_user.id).first()
+        solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
         if not solution:
             solution = Solution()
             solution.is_default = False
@@ -203,29 +204,8 @@ def save_code(assignment_id):
 @login_required
 def run_code(assignment_id):
     assignment = Assignment.query.filter_by(id=assignment_id).first()
-
-    # todo@tome handle if first time and no solution or test
-    # maybe disallow run without test or solution
-    solution = None
-    solution_code = ""
-
-    if current_user.role.name in ["teacher", "admin"]:
-        solution = Solution.query.filter_by(
-            assignment_id=assignment.id, is_default=True).first()        
-    else:
-        solution = Solution.query.filter_by(
-            assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
-
-    if solution:
-        solution_code = read_file(solution.code.path)
-
-    test_code = ""
-    if assignment.test:
-        test_code = read_file(assignment.test.code.path)
-
-    code = solution_code + "\n" + test_code
-
-    return execute_code(code)
+    result = run_just_code(assignment)
+    return result
 
 
 def save_code_to_file(assignment_id, tab, code):
@@ -336,3 +316,63 @@ def allowed_file(filename):
     return "." in filename and \
            filename.rsplit(".", 1)[1].lower(
            ) in current_app.config["ALLOWED_EXTENSIONS"]
+
+
+@bp.route("/active_solution/<int:assignment_id>", methods=["GET"])
+@login_required
+def active_solution(assignment_id):
+    solution = Solution()
+    if current_user.role.name in ['teacher', 'admin']:
+        solution = Solution.query.filter_by(assignment_id=assignment_id,
+                                            is_default=True).first_or_404()
+    else:
+        solution = Solution.query.filter_by(assignment_id=assignment_id,
+                                            is_default=False, user_id=current_user.id, is_submitted=False).first_or_404()
+    resp = {'id': solution.id}
+    return jsonify(resp)
+
+
+@bp.route("/submit", methods=["POST"])
+@login_required
+def submit():
+    solution_id = request.form.get('solutionId')
+    solution = Solution.query.filter_by(id=solution_id).first()
+    result = run_just_code(solution.assignment)
+    test_result = parse_return(result)
+    solution.result = test_result
+    solution.is_submitted = True
+    db.session.add(solution)
+    db.session.commit()
+    return jsonify({"result": str(test_result)+"/100", "output": result})
+
+def run_just_code(assignment):
+    solution = None
+    solution_code = ""
+
+    if current_user.role.name in ["teacher", "admin"]:
+        solution = Solution.query.filter_by(
+            assignment_id=assignment.id, is_default=True).first()
+    else:
+        solution = Solution.query.filter_by(
+            assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
+
+    if solution:
+        solution_code = read_file(solution.code.path)
+
+    test_code = ""
+    if assignment.test:
+        test_code = read_file(assignment.test.code.path)
+
+    code = solution_code + "\n" + test_code
+    return execute_code(code)
+
+def parse_return(result):
+    test_ok_cnt = result.count("OK")
+    test_nok_cnt = result.count("X")
+    total = test_ok_cnt + test_nok_cnt
+    if  test_ok_cnt == 0:
+        result = 0
+    else:
+        result = round((test_ok_cnt / total) * 100)
+    return result
+

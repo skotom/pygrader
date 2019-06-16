@@ -7,9 +7,8 @@
         </div>
     </div>
 </div>
-
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-12">
         <div id="tabArea">
             <span id="solution" class="tab">Solution</span>
             {% if current_user.role.name in ['teacher', 'admin'] %}
@@ -28,9 +27,7 @@
         </div>
         <div id="editor"></div>
     </div>
-    <div id="result" class="col-md-4"></div>
 </div>
-
 {% if current_user.role.name == 'student' %}
 <div class="row">
     <div class="col-md-12 text-right">
@@ -38,6 +35,7 @@
     </div>
 </div>
 {% endif%}
+<div id="result" class="col-md-12"></div>
 
 <div class="modal" id="uploadFileModal" role="dialog">
     <div class="modal-dialog">
@@ -56,77 +54,28 @@
                 <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
             </div>
         </div>
+    </div>
+</div>
 
+<div class="modal" id="solutionModal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Result</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnTryAgain" class="btn btn-primary">Try again</button>
+                <button type="button" id="btnBack" class="btn btn-secondary" data-dismiss="modal">Return</button>
+            </div>
+        </div>
     </div>
 </div>
 <style>
-    #editor {
-        border: 1px solid #999;
-        border-top: 0;
-        margin-bottom: 10px;
-        height: 400px;
-    }
-
-    #result {
-        font-family: "Courier new";
-        margin-top: 30px;
-        border: 1px solid #999;
-        /* height: 400px; */
-        white-space: pre-wrap;
-    }
-
-    #tabArea {
-        font-size: 15px;
-        height: 30px;
-        box-sizing: border-box;
-        border-bottom: 1px solid #999
-    }
-
-    .tab {
-        height: 30px;
-        line-height: 30px;
-        box-sizing: border-box;
-        color: #999;
-        padding: 0 8px;
-        border: 1px solid #999;
-        border-bottom: 0;
-        cursor: pointer;
-        float: left;
-    }
-
-    .action {
-        height: 30px;
-        line-height: 30px;
-        box-sizing: border-box;
-        color: #000;
-        padding: 0 5px;
-        border: 1px solid #999;
-        border-bottom: 0;
-        cursor: pointer;
-        float: right;
-        padding-left: 16px;
-    }
-
-    .action.run:hover>span {
-        color: #3ea762;
-    }
-
-    .action.save:hover>span {
-        color: #3e86a7;
-    }
-
-    .action.upload:hover>span {
-        color: #a73e9b;
-    }
-
-    .action:hover>span {
-        transition: 0.3s;
-    }
-
-    .tab.active {
-        color: #000;
-        border-bottom: 1px solid #fff
-    }
 </style>
 <script>
     var DID_CHANGE_EVENT;
@@ -154,14 +103,14 @@
             }
 
             formData.append('assignment_id', '{{ assignment.id }}');
-            formData.append('tab', $('.active').attr('id'));
+            formData.append('tab', $('.tab.active').attr('id'));
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '{{ url_for('assignments.upload_file') }}', true);
 
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     renderMessage(JSON.parse(xhr.response));
-                    loadEditor($(".active").attr('id'));
+                    loadEditor($(".tab.active").attr('id'));
                 } else {
                     renderMessage({message: 'An error occured', status: 1});
                 }
@@ -229,7 +178,7 @@
     function getCurrentSolution(){
         $.ajax({
             type: 'get',
-            url: "{{url_for('solutions.active_solution', assignment_id=assignment.id)}}",
+            url: "{{url_for('assignments.active_solution', assignment_id=assignment.id)}}",
             success: function (response) {
                 localStorage.setItem('solutionId', response.id);
                 changeSubmitSolutionButtonState();
@@ -257,8 +206,11 @@
         $.ajax({
             type: 'post',
             data: {solutionId: solutionId},
-            url: '{{url_for('solutions.submit')}}',
+            url: '{{url_for('assignments.submit')}}',
             success: function(response){
+                var solutionModal = $('#solutionModal');
+                solutionModal.modal();
+                solutionModal.find('.modal-body').text(response.result);
             },
             error: function(){
             }
@@ -339,6 +291,14 @@
 
         $('#submitSolutionBtn').click(function () {
            submitSolution(); 
+        });
+
+        $('#btnTryAgain').click(function (){
+            location.reload();
+        });
+
+        $('#btnBack').click(function () {
+            window.location.href = "{{ url_for('courses.course', id = assignment.course_id) }}";
         });
     });
 </script>

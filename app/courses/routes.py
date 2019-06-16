@@ -9,7 +9,7 @@ from app.courses import bp
 @bp.route('/courses', methods=['GET', 'POST'])
 @login_required
 def courses():
-    if(current_user.role.name == 'teacher'):
+    if(current_user.role.name in ['teacher', 'student']):
         courses = current_user.courses
     else:
         courses = Course.query.all()
@@ -23,8 +23,10 @@ def course(id):
     assignments = Assignment.query.filter_by(course=course)
     if current_user.role.name not in ['teacher', 'admin']:
         completed_assignments = []
+        
         for assignment in assignments:
             default_solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=True).first()
+            
             if default_solution and assignment.test and assignment.template:
                 completed_assignments.append(assignment)
         
