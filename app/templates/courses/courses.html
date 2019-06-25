@@ -10,19 +10,23 @@
 {% endif %}
 
 <div class="table-responsive"> 
-        <table class="table table-bordered">
-            <thead>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+                {% for course in courses %}
                 <tr>
-                    <th>Name</th>
+                    <td> <a href="{{url_for('courses.course', id=course.id)}}">{{ course.title }}</a></td>
                 </tr>
-            </thead>
-            <tbody>
-                    {% for course in courses %}
-                    <tr>
-                        <td> <a href="{{url_for('courses.course', id=course.id)}}">{{ course.title }}</a></td>
-                    </tr>
-                    {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                {% else %}
+                <tr>
+                    <td> No courses</td>
+                </tr>
+                {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

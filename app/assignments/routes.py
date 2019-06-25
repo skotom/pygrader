@@ -69,22 +69,25 @@ def editor(assignment_id):
     if current_user.role.name in ["teacher", "admin"]:
         if tab == "solution":
             solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=True).first()
+            if solution:
+                solution_code = read_file(solution.code.path) if solution else ""
+                code = solution_code
+            if code == "":
+                code = template_code
         elif tab == "test":
             test = assignment.test
             test_code = read_file(test.code.path) if test else ""
             code = test_code
         else:
-            template = assignment.template
-            template_code = read_file(template.code.path) if template else ""
             code = template_code       
     else:
         solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
+        if solution:
+            solution_code = read_file(solution.code.path) if solution else ""
+            code = solution_code
+        if code == "":
+            code = template_code
 
-    if solution:
-        solution_code = read_file(solution.code.path) if solution else ""
-        code = solution_code
-    if code == "":
-        code = template_code
     return render_template("editor.html", assignment=assignment, code=code, solution=solution)
 
 

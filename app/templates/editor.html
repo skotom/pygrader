@@ -223,7 +223,6 @@
         initEditor(code);
         initFileUpload();
         cleanLocalStorage();
-        console.log('What');
         var solutionId = '{{ solution.id if solution else "" }}';
         localStorage.setItem("solutionId", solutionId);
         changeSubmitSolutionButtonState();
