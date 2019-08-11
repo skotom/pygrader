@@ -19,3 +19,4 @@ class Config(object):
     UPLOAD_FOLDER = os.environ.get(
         'UPLOAD_FOLDER') or os.path.join(basedir, 'uploads')
     ALLOWED_EXTENSIONS = set(['py'])
+    TEMPLATES_AUTO_RELOAD = True
