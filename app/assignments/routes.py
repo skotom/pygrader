@@ -1,7 +1,7 @@
 import io
 import os
 import sys
-from flask import render_template, flash, redirect, url_for, request, \
+from flask import make_response, render_template, flash, redirect, url_for, request, \
     current_app
 from flask_login import login_required, current_user
 from app import db
@@ -11,6 +11,8 @@ from werkzeug.utils import secure_filename
 from flask import jsonify
 import datetime
 import uuid
+import time
+
 
 @bp.route("/assignment/<int:id>", methods=["GET", "POST"])
 @login_required
@@ -20,16 +22,48 @@ def assignment(id):
                            assignment=assignment)
 
 
+@bp.route("/assignment/description/<int:assignment_id>", methods=["GET", "POST"])
+@login_required
+def description(assignment_id):
+    assignment = Assignment.query.filter_by(id=assignment_id).first_or_404()
+    description = assignment.description if assignment.description else ''
+    sample_input = assignment.sample_input if assignment.sample_input else ''
+    sample_output = assignment.sample_output if assignment.sample_output else ''
+    test_data = assignment.test_data if assignment.test_data else ''
+    time_limit = assignment.time_limit if assignment.time_limit else ''
+
+    full_description = description + \
+        "\n #### Input\n" + sample_input + \
+        "\n #### Output\n" + sample_output + \
+        "\n #### Time limit\n" + str(time_limit) + "s"
+
+    # response = make_response(full_description)
+    # response.headers["content-type"] = "text/plain"
+    response = {"description": full_description, "test_data": test_data}
+    return jsonify(response)
+
+
 @bp.route("/course/<int:course_id>/add_assignment", methods=["GET", "POST"])
 @login_required
 def add_assignment(course_id):
     course = Course.query.filter_by(id=course_id).first_or_404()
     if request.method == 'POST':
-        existing_assignment = Assignment.query.filter_by(title=request.form["title"]).first()
+        existing_assignment = Assignment.query.filter_by(
+            title=request.form["title"]).first()
         if existing_assignment is not None:
             flash("Use different title")
             return redirect(url_for('assignments.add_assignment', course_id=course.id))
-        assignment = Assignment(title=request.form["title"], description=request.form["description"], course=course)
+
+        assignment = Assignment()
+        assignment.title = request.form['title']
+        assignment.course = course
+        assignment.description = request.form['description']
+        assignment.sample_input = request.form['sample_input']
+        assignment.sample_output = request.form['sample_output']
+        assignment.test_data = request.form['test_data']
+        if request.form['time_limit'] != '' and is_number(request.form['time_limit']):
+            assignment.time_limit = request.form['time_limit']
+
         db.session.add(assignment)
         db.session.commit()
         flash("Successfully added new assignment to {}".format(course.title))
@@ -45,6 +79,12 @@ def edit_assignment(id):
     if request.method == 'POST':
         assignment.title = request.form['title']
         assignment.description = request.form['description']
+        assignment.sample_input = request.form['sample_input']
+        assignment.sample_output = request.form['sample_output']
+        assignment.test_data = request.form['test_data']
+        if request.form['time_limit'] != '' and is_number(request.form['time_limit']):
+            assignment.time_limit = request.form['time_limit']
+
         db.session.commit()
         flash("Successfully saved changes")
         return redirect(url_for("assignments.assignment", id=id))
@@ -60,17 +100,19 @@ def editor(assignment_id):
     tab = request.args.get("tab")
     code = ""
     solution = None
-    
+
     assignment = Assignment.query.filter_by(id=assignment_id).first()
 
     template = assignment.template
     template_code = read_file(template.code.path) if template else ""
-    
+
     if current_user.role.name in ["teacher", "admin"]:
         if tab == "solution":
-            solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=True).first()
+            solution = Solution.query.filter_by(
+                assignment_id=assignment.id, is_default=True).first()
             if solution:
-                solution_code = read_file(solution.code.path) if solution else ""
+                solution_code = read_file(
+                    solution.code.path) if solution else ""
                 code = solution_code
             if code == "":
                 code = template_code
@@ -79,9 +121,10 @@ def editor(assignment_id):
             test_code = read_file(test.code.path) if test else ""
             code = test_code
         else:
-            code = template_code       
+            code = template_code
     else:
-        solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
+        solution = Solution.query.filter_by(
+            assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
         if solution:
             solution_code = read_file(solution.code.path) if solution else ""
             code = solution_code
@@ -102,28 +145,27 @@ def upload_file():
         if "file" not in request.files:
             resp = {"message": "No file part", "status": 1}
             return jsonify(resp)
-    
+
         file = request.files["file"]
 
         if file.filename == "":
-            resp= {"message":"No selected file", "status": 1}
+            resp = {"message": "No selected file", "status": 1}
             return jsonify(resp)
 
         if file and allowed_file(file.filename):
             code = file.read().decode("utf-8")
-            print(code)
             save_code_to_file(assignment_id, tab, code)
         resp = {"message": "Succesfully uploaded file", "status": 1}
     else:
-        resp = {"message":"No selected file", "status": 1}
-    
+        resp = {"message": "No selected file", "status": 1}
+
     return jsonify(resp)
 
 
 def save_solution(assignment, path):
     code = Code()
     solution = Solution()
-    
+
     if current_user.role.name in ["teacher", "admin"]:
         solution = Solution.query.filter_by(
             assignment_id=assignment.id, is_default=True).first()
@@ -131,18 +173,19 @@ def save_solution(assignment, path):
             solution = Solution()
             solution.is_default = True
     else:
-        solution = Solution.query.filter_by(assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
+        solution = Solution.query.filter_by(
+            assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
         if not solution:
             solution = Solution()
             solution.is_default = False
 
     solution.set_user(current_user)
     solution.set_assignment(assignment)
-    
+
     # no multiple solutions only one code..
     if solution and solution.code:
         code = solution.code
-    
+
     code.path = path
     solution.set_code(code)
 
@@ -203,6 +246,7 @@ def save_code(assignment_id):
         save_code_to_file(assignment_id, tab, code)
     return "OK"
 
+
 @bp.route("/run_code/<int:assignment_id>", methods=["POST"])
 @login_required
 def run_code(assignment_id):
@@ -212,35 +256,34 @@ def run_code(assignment_id):
 
 
 def save_code_to_file(assignment_id, tab, code):
-        assignment = Assignment.query.filter_by(id=assignment_id).first()
-        filename = ""
+    assignment = Assignment.query.filter_by(id=assignment_id).first()
+    filename = ""
 
-        if tab == "solution":
-            filename = get_filename_for_existing_solution(assignment)
-        elif tab == "test":
-            filename = get_filename_for_existing_test(assignment)
-        elif tab == "template":
-            filename = get_filename_for_existing_template(assignment)
+    if tab == "solution":
+        filename = get_filename_for_existing_solution(assignment)
+    elif tab == "test":
+        filename = get_filename_for_existing_test(assignment)
+    elif tab == "template":
+        filename = get_filename_for_existing_template(assignment)
 
-        if filename != "":
-            path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
-        else:
-            filename = secure_filename("{}.py".format(str(uuid.uuid4())))
-            file_path = current_app.config["UPLOAD_FOLDER"]
-            if not os.path.exists(file_path):
-                os.makedirs(file_path)
-            path = os.path.join(file_path, filename)
+    if filename != "":
+        path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+    else:
+        filename = secure_filename("{}.py".format(str(uuid.uuid4())))
+        file_path = current_app.config["UPLOAD_FOLDER"]
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+        path = os.path.join(file_path, filename)
 
-        file = open(path, "w+")
-        file.write(code)
+    file = open(path, "w+")
+    file.write(code)
 
-        if tab == "solution":
-            save_solution(assignment, filename)
-        elif tab == "test":
-            save_test(assignment, filename)
-        elif tab == "template":
-            print("TEMPLATE")
-            save_template(assignment, filename)
+    if tab == "solution":
+        save_solution(assignment, filename)
+    elif tab == "test":
+        save_test(assignment, filename)
+    elif tab == "template":
+        save_template(assignment, filename)
 
 
 def get_filename_for_existing_solution(assignment):
@@ -278,13 +321,19 @@ def get_filename_for_existing_template(assignment):
             filename = template.code.path
     return filename
 
+
 def execute_code(code):
     resp = ""
+    execution_time = 0.0
+
     try:
         executable = compile(code, "<string>", "exec")
         buffer = io.StringIO()
         sys.stdout = buffer
+        start = time.time()
         exec(executable, locals(), locals())
+        end = time.time()
+        execution_time = start - end
         sys.stdout = sys.__stdout__
         resp = buffer.getvalue()
     except IOError as ioe:
@@ -305,8 +354,12 @@ def execute_code(code):
         resp = str(te)
     except:
         resp = "An error occurred."
-    
-    return resp
+    full_resp = {
+        "result": resp,
+        "time": execution_time
+    }
+    return full_resp
+
 
 def read_file(path):
     contents = ""
@@ -314,6 +367,7 @@ def read_file(path):
     with io.open(full_path, "r") as f:
         contents = f.read()
     return contents
+
 
 def allowed_file(filename):
     return "." in filename and \
@@ -348,6 +402,7 @@ def submit():
     db.session.commit()
     return jsonify({"result": str(test_result)+"/100", "output": result})
 
+
 def run_just_code(assignment):
     solution = None
     solution_code = ""
@@ -367,15 +422,24 @@ def run_just_code(assignment):
         test_code = read_file(assignment.test.code.path)
 
     code = solution_code + "\n" + test_code
-    return execute_code(code)
+    result = execute_code(code)
+    return result["result"]
+
 
 def parse_return(result):
     test_ok_cnt = result.count("OK")
     test_nok_cnt = result.count("X")
     total = test_ok_cnt + test_nok_cnt
-    if  test_ok_cnt == 0:
+    if test_ok_cnt == 0:
         result = 0
     else:
         result = round((test_ok_cnt / total) * 100)
     return result
 
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False

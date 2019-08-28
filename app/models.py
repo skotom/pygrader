@@ -79,13 +79,15 @@ class Role(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     name = db.Column(db.String(50), unique=True)
 
+
 class Course(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     title = db.Column(db.String(100), unique=True)
     users = db.relationship(
         'User', secondary=enrollments,
-        primaryjoin=(enrollments.c.course_id == id), 
+        primaryjoin=(enrollments.c.course_id == id),
         backref=db.backref('enrollments', lazy='dynamic'), lazy='dynamic')
+
 
 class Assignment(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
@@ -93,16 +95,21 @@ class Assignment(db.Model):
     course = db.relationship('Course')
     title = db.Column(db.String(100), unique=True)
     description = db.Column(db.Text)
+    sample_input = db.Column(db.Text)
+    sample_output = db.Column(db.Text)
+    time_limit = db.Column(db.Integer())
     test_id = db.Column(db.Integer(), db.ForeignKey('test.id'))
+    test_data = db.Column(db.Text)
     test = db.relationship('Test')
     template_id = db.Column(db.Integer(), db.ForeignKey('template.id'))
     template = db.relationship('Template')
-    
+
     def set_test(self, test):
         self.test = test
 
     def set_template(self, template):
         self.template = template
+
 
 class Test(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
@@ -112,6 +119,7 @@ class Test(db.Model):
     def set_code(self, code):
         self.code = code
 
+
 class Template(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     code_id = db.Column(db.Integer(), db.ForeignKey('code.id'))
@@ -119,6 +127,7 @@ class Template(db.Model):
 
     def set_code(self, code):
         self.code = code
+
 
 class Solution(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
@@ -131,7 +140,7 @@ class Solution(db.Model):
     assignment = db.relationship('Assignment')
     is_submitted = db.Column(db.Boolean(), default=False)
     result = db.Column(db.Integer())
-    
+
     def set_assignment(self, assignment):
         self.assignment = assignment
 
@@ -142,6 +151,8 @@ class Solution(db.Model):
         self.user = user
 
 # Possible problems with different formatting in windows and unix
+
+
 class Code(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True)
     path = db.Column(db.String(255))

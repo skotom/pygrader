@@ -1,8 +1,7 @@
-{% extends 'base.html' %}
-{% block app_content %}
+{% extends 'base.html' %} {% block app_content %}
 <h1>{{ assignment.title }}</h1>
-<p>{{ assignment.description }}</p>
 <div id="markdownDesc"></div>
+<br />
 <div class="row">
     <div class="col-md-12">
         {% if current_user.role.name in ['teacher', 'admin'] %}
@@ -10,17 +9,36 @@
         {% endif%}
     </div>
 </div>
-<div id="editorHolder">
-
-</div>
-<script src='https://cdn.jsdelivr.net/npm/showdown@1.9.0/dist/showdown.min.js'></script>
+<div id="editorHolder"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/9.1.0/markdown-it.min.js"></script>
 <script>
     function loadMarkdownDescription(){
-        var converter = new showdown.Converter();
-        var text = '# hello, markdown!';
-        var html = converter.makeHtml(text);
-        $("#markdownDesc").html(html);
+        $.ajax({
+            url: '{{ url_for('assignments.description', assignment_id=assignment.id) }}',
+            success: function (response) {
+                var converter = window.markdownit();
+                console.log(response);
+                var html = converter.render(response.description);
+                html  = html + '<h4>Test data</h4><table><tr><td><b>Inputs</b></td>';
+                var testData = extractTestData(response.test_data);
+                for(var input of testData.inputs){
+                    html = html + '<td>'+ input + '</td>';
+                }
+
+                html = html + '</tr><tr><td><b>Outputs</b></td>';
+
+                for(var output of testData.outputs){
+                    html = html + '<td>'+ output + '</td>';
+                }
+                html = html + '</tr></table>';
+                $("#markdownDesc").html(html);
+            },
+            error: function () {
+            }
+        });
+
     }
+
     function loadEditor(tab) {
         var editorHolder = $("#editorHolder");
 
@@ -38,8 +56,27 @@
         });
     }
 
+    function extractTestData(testData){
+        var rows = testData.split('\n');
+        var inputs = [];
+        var outputs = [];
+
+        for(var row of rows){
+            console.log('ROW', row);
+            row.trim();
+            var rxp = /(\[)(.*=?)(\])/;
+            var input = row.match(rxp)[0];
+            console.log('INPUT', input);
+            inputs.push(input);
+            var output = row.replace(input + ',', '')
+            outputs.push(output);
+        }
+        return {inputs: inputs,  outputs: outputs};
+    }
+
     window.onload = function () {
         loadEditor('solution');
         loadMarkdownDescription();
     };
-</script> {% endblock %}
+</script>
+{% endblock %}
