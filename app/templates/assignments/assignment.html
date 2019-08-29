@@ -61,15 +61,24 @@
         var inputs = [];
         var outputs = [];
 
-        for(var row of rows){
-            console.log('ROW', row);
+        for(var i = 0; i < 3; i++){
+            var row = rows[i];
             row.trim();
             var rxp = /(\[)(.*=?)(\])/;
-            var input = row.match(rxp)[0];
-            console.log('INPUT', input);
+            var input = row.match(rxp);
+
+            if (input){
+                var output = row.replace(input[0] + ',', '')
+            }else{
+                var rowArray = row.split(',');
+                console.log(rowArray);
+                input = rowArray[0];
+                output = rowArray[1];
+            }
+
             inputs.push(input);
-            var output = row.replace(input + ',', '')
             outputs.push(output);
+
         }
         return {inputs: inputs,  outputs: outputs};
     }
