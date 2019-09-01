@@ -60,7 +60,9 @@
         var inputs = [];
         var outputs = [];
 
-        for(var i = 0; i < 3; i++){
+        var n = rows.length >= 3 ? 3: rows.length
+
+        for(var i = 0; i < n; i++){
             var row = rows[i];
             row.trim();
             var inputRx = /\[(.*?)\]/;
