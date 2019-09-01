@@ -58,7 +58,7 @@
 </div>
 
 <div class="modal" id="solutionModal" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 600px;">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Result</h5>
@@ -210,7 +210,13 @@
             success: function(response){
                 var solutionModal = $('#solutionModal');
                 solutionModal.modal();
-                solutionModal.find('.modal-body').text(response.result);
+
+                var responseText = '';
+                for(result of response.result){
+                    color = getGradeColor(result.grade)
+                    responseText += '<p style="color:'+color+'">' +result.message + '</p><br>';
+                }
+                solutionModal.find('.modal-body').html(responseText);
             },
             error: function(){
             }
@@ -272,6 +278,19 @@
             submitSolutionBtn.removeAttr('disabled');
         }else{
             submitSolutionBtn.attr('disabled', 'true');
+        }
+    }
+
+    function getGradeColor(grade){
+        switch(grade){
+            case 1:
+                return '#155724' 
+            case 2:
+                return '#721c24';
+            case 3:
+                return '#856404';
+            default:
+                return '#000';
         }
     }
 

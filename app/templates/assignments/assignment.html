@@ -17,7 +17,6 @@
             url: '{{ url_for('assignments.description', assignment_id=assignment.id) }}',
             success: function (response) {
                 var converter = window.markdownit();
-                console.log(response);
                 var html = converter.render(response.description);
                 html  = html + '<h4>Test data</h4><table><tr><td><b>Inputs</b></td>';
                 var testData = extractTestData(response.test_data);
@@ -64,14 +63,22 @@
         for(var i = 0; i < 3; i++){
             var row = rows[i];
             row.trim();
-            var rxp = /(\[)(.*=?)(\])/;
-            var input = row.match(rxp);
+            var inputRx = /\[(.*?)\]/;
+            var input = row.match(inputRx);
+            var output = '';
 
             if (input){
-                var output = row.replace(input[0] + ',', '')
+                outputCandidate = row.replace(input[0] + ',', '');
+                output = outputCandidate.match(inputRx);
+                if(output){
+                    output = output[0];
+                }else{
+                    output = outputCandidate
+                }
+
+                input = input[0];
             }else{
                 var rowArray = row.split(',');
-                console.log(rowArray);
                 input = rowArray[0];
                 output = rowArray[1];
             }

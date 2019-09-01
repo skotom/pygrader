@@ -1,3 +1,4 @@
+# coding=utf-8
 import io
 import os
 import sys
@@ -12,7 +13,9 @@ from flask import jsonify
 import datetime
 import uuid
 import time
+import re
 
+_GRADE = {'PASS': 1, 'FAIL': 2, 'PARTIAL': 3}
 
 @bp.route("/assignment/<int:id>", methods=["GET", "POST"])
 @login_required
@@ -37,8 +40,6 @@ def description(assignment_id):
         "\n #### Output\n" + sample_output + \
         "\n #### Time limit\n" + str(time_limit) + "s"
 
-    # response = make_response(full_description)
-    # response.headers["content-type"] = "text/plain"
     response = {"description": full_description, "test_data": test_data}
     return jsonify(response)
 
@@ -252,7 +253,7 @@ def save_code(assignment_id):
 def run_code(assignment_id):
     assignment = Assignment.query.filter_by(id=assignment_id).first()
     result = run_just_code(assignment)
-    return result
+    return result["result"]
 
 
 def save_code_to_file(assignment_id, tab, code):
@@ -275,7 +276,7 @@ def save_code_to_file(assignment_id, tab, code):
             os.makedirs(file_path)
         path = os.path.join(file_path, filename)
 
-    file = open(path, "w+")
+    file = open(path, "w+", encoding='utf-8')
     file.write(code)
 
     if tab == "solution":
@@ -364,7 +365,7 @@ def execute_code(code):
 def read_file(path):
     contents = ""
     full_path = os.path.join(current_app.config["UPLOAD_FOLDER"], path)
-    with io.open(full_path, "r") as f:
+    with io.open(full_path, "r", encoding='utf-8') as f:
         contents = f.read()
     return contents
 
@@ -394,16 +395,56 @@ def active_solution(assignment_id):
 def submit():
     solution_id = request.form.get('solutionId')
     solution = Solution.query.filter_by(id=solution_id).first()
-    result = run_just_code(solution.assignment)
-    test_result = parse_return(result)
-    solution.result = test_result
+
+    assignment = solution.assignment
+    test_data = parse_test_data(assignment.test_data)
+    results = []
+
+    for i in range(0, len(test_data["test_inputs"])):
+        test = test_data["test_inputs"][i]
+        output = test_data["test_outputs"][i]
+        
+        result = run_just_code(solution.assignment, test)
+        result_text = ""
+        grade = _GRADE["FAIL"]
+        output = output.replace('\r', '').replace('\n', '').replace(' ', '')
+        result_output = result["result"].replace('\r', '').replace('\n', '').replace(' ', '')
+
+        if assignment.time_limit is not None:    
+            if result_output == output:
+                result_text = "Test {}: CORRECT {} == {}, ".format(
+                    i + 1, result_output, output)
+
+                if result["time"] <= assignment.time_limit:
+                    grade = _GRADE["PASS"]
+                    result_text = "{} AND ON TIME, TIME: {}s, TIME_LIMIT: {}s".format(result_text, result["time"], assignment.time_limit)
+                else:
+                    grade = _GRADE["PARTIAL"]
+                    result_text = "{} BUT TOO SLOW, TIME: {}s TIME_LIMIT: {}s".format(result_text, result["time"], assignment.time_limit)
+            else:
+                grade = _GRADE["FAIL"]
+                result_text = "Test {}: INCORRECT {} != {}, ".format(
+                    i + 1, result_output, output)
+        else:
+            if result_output == output:
+                grade = _GRADE["PASS"]
+                result_text = "Test {}: CORRECT {} == {}, ".format(
+                    i + 1, result_output, output)
+            else:
+                grade = _GRADE["FAIL"]
+                result_text = "Test {}: INCORRECT {} != {}, ".format(
+                    i + 1, result_output, output)
+
+        results.append({'message': result_text, 'grade': grade})
+
+    solution.result_text = '\n '.join([result['message'] for result in results])
     solution.is_submitted = True
     db.session.add(solution)
     db.session.commit()
-    return jsonify({"result": str(test_result)+"/100", "output": result})
+    return jsonify({"result": results})
 
 
-def run_just_code(assignment):
+def run_just_code(assignment, test_data = None):
     solution = None
     solution_code = ""
 
@@ -420,21 +461,46 @@ def run_just_code(assignment):
     test_code = ""
     if assignment.test:
         test_code = read_file(assignment.test.code.path)
-
-    code = solution_code + "\n" + test_code
-    result = execute_code(code)
-    return result["result"]
-
-
-def parse_return(result):
-    test_ok_cnt = result.count("OK")
-    test_nok_cnt = result.count("X")
-    total = test_ok_cnt + test_nok_cnt
-    if test_ok_cnt == 0:
-        result = 0
+    if test_data:
+        code = "{}\n{}\nprint(test({}))".format(solution_code, test_code, test_data)
     else:
-        result = round((test_ok_cnt / total) * 100)
+        code = "{}\n{}".format(solution_code, test_code)
+
+    result = execute_code(code)
+
     return result
+
+def parse_test_data(test_data_plain_text):
+    rows = test_data_plain_text.split('\n')
+    test_inputs = []
+    test_outputs = []
+
+    for i in range(0, 3):
+        row = rows[i]
+        row.replace(' ', '')
+        rx = r'\[(.*?)\]'
+        test_input_re_search = re.search(rx, row)
+        test_input = ''
+        test_output = ''
+
+        if test_input_re_search is not None:
+            test_input = row[test_input_re_search.start()
+                                                        : test_input_re_search.end()]
+
+            test_output = row.replace(test_input + ',', '')
+            test_output_re_search = re.search(rx, test_output)
+            if test_output_re_search is not None:
+                test_output = test_output[test_output_re_search.start(
+                ): test_output_re_search.end()]
+        else:
+            rowArray = row.split(',')
+            test_input = rowArray[0]
+            test_output = rowArray[1]
+
+        test_inputs.append(test_input)
+        test_output.strip('\r')
+        test_outputs.append(test_output)
+    return {'test_inputs': test_inputs, 'test_outputs': test_outputs}
 
 
 def is_number(s):

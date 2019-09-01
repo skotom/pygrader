@@ -140,6 +140,7 @@ class Solution(db.Model):
     assignment = db.relationship('Assignment')
     is_submitted = db.Column(db.Boolean(), default=False)
     result = db.Column(db.Integer())
+    result_text = db.Column(db.Text())
 
     def set_assignment(self, assignment):
         self.assignment = assignment
@@ -149,8 +150,6 @@ class Solution(db.Model):
 
     def set_user(self, user):
         self.user = user
-
-# Possible problems with different formatting in windows and unix
 
 
 class Code(db.Model):
