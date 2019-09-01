@@ -3,29 +3,29 @@
 <form action="{{url_for('assignments.add_assignment', course_id=course.id)}}" method="POST">
     <div class="form-group">
         <label for="titleInput">Title</label>
-        <input id="titleInput" type="text" name="title" required class="form-control">
+        <input id="titleInput" type="text" name="title"  placeholder='Assignment title' required class="form-control">
     </div>
     <div class="form-group">
         <label for="descriptionTextarea">Description</label>
-        <textarea id="descriptionTextarea" class="form-control" required name="description"></textarea>
+        <textarea id="descriptionTextarea" class="form-control"  placeholder='Assignment description' required name="description"></textarea>
     </div>
         <div class="form-group">
             <label for="sampleInput">Input</label>
-            <textarea id="sampleInput" class="form-control"
+            <textarea id="sampleInput"  placeholder='Describe input data' class="form-control"
                 name="sample_input"></textarea>
         </div>
         <div class="form-group">
             <label for="sampleOutput">Output</label>
-            <textarea id="sampleOutput" class="form-control"
+            <textarea id="sampleOutput"  placeholder='Describe output data' class="form-control"
                 name="sample_output"></textarea>
         </div>
         <div class="form-group">
             <label for="timeLimit">Time limit</label>
-            <input id="timeLimit" class="form-control" name="time_limit" type="number"></input>
+            <input id="timeLimit" class="form-control" name="time_limit" type="number" placeholder='Time limit in seconds'></input>
         </div>
         <div class="form-group">
             <label for="testData">Test data</label>
-            <textarea id="testData" class="form-control" name="test_data"></textarea>
+            <textarea id="testData" class="form-control"  placeholder='Input and output divided by comma, only array and integer supported.' name="test_data"></textarea>
         </div>
     <button class="btn btn-md btn-primary" type="submit">Save</button>
 </form>
