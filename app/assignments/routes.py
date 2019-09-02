@@ -252,8 +252,24 @@ def save_code(assignment_id):
 @login_required
 def run_code(assignment_id):
     assignment = Assignment.query.filter_by(id=assignment_id).first()
-    result = run_just_code(assignment)
-    return result["result"]
+
+    test_data = parse_test_data(assignment.test_data)
+    results = []
+
+    for i in range(0, len(test_data["test_inputs"])):
+        test = test_data["test_inputs"][i]
+        output = test_data["test_outputs"][i]
+
+        result = run_just_code(assignment, test)
+        result_text = ""
+        output = output.replace('\r', '').replace('\n', '').replace(' ', '')
+        result_output = result["result"].replace(
+            '\r', '').replace('\n', '').replace(' ', '')
+
+        result_text = "TEST {}\nINPUT: {} \nOUTPUT: {} \nTIME: {}s".format(i +1, test, result_output, result["time"])
+        results.append({'message': result_text})
+        
+    return jsonify(results)
 
 
 def save_code_to_file(assignment_id, tab, code):
@@ -474,8 +490,8 @@ def parse_test_data(test_data_plain_text):
     rows = test_data_plain_text.split('\n')
     test_inputs = []
     test_outputs = []
-
-    for i in range(0, 3):
+    n = len(rows) if len(rows) <= 3 else 3
+    for i in range(0, n):
         row = rows[i]
         row.replace(' ', '')
         rx = r'\[(.*?)\]'

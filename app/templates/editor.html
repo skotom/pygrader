@@ -193,7 +193,11 @@
             type: 'post',
             url: '{{url_for('assignments.run_code', assignment_id=assignment.id)}}',
             success: function (response) {
-                $("#result").empty().text(response);
+                var result_text = "";
+                for(var result of response){
+                    result_text += "<p>" + result.message + "</p><br>";
+                }
+                $("#result").empty().html(result_text);
             },
             error: function () {
 
