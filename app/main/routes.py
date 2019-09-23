@@ -35,19 +35,6 @@ def edit_profile():
                            form=form)
 
 
-def edit_profile():
-    form = EditProfileForm(current_user.username)
-    if form.validate_on_submit():
-        current_user.username = form.username.data
-        db.session.commit()
-        flash('Your changes have been saved.')
-        return redirect(url_for('main.edit_profile'))
-    elif request.method == 'GET':
-        form.username.data = current_user.username
-    return render_template('edit_profile.html', title='Edit Profile',
-                           form=form)
-
-
 @bp.route('/set_auto_save', methods=['PUT'])
 @login_required
 def set_auto_save():

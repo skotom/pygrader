@@ -1,10 +1,13 @@
-{% extends 'base_no_nav.html' %} {% block head_content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}" />
-{% endblock %} {% block app_content %}
-<form action="{{ url_for('auth.login') }}" method="POST" id="loginForm" class="form-signin" autocomplete="off">
-    <!-- <asset:image class="mb-4" src="logo.png" width="72" height="72" /> -->
-    <img class="mb-4" src="{{ url_for('static', filename='images/logo.png') }}" alt="" width="72" height="72" />
-    <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+{% extends 'base.html' %} {% block app_content %}
+<h1>Create user</h1>
+<form
+    action="{{ url_for('administration.create_user') }}"
+    method="POST"
+    id="createUserForm"
+    class="form-signin"
+    autocomplete="off"
+>
+    <h1 class="h3 mb-3 font-weight-normal">Add user data</h1>
     <label for="username" class="sr-only">Username:</label>
     <input type="text" class="form-control" name="username" id="username" />
 
@@ -19,6 +22,4 @@
     </div>
     <input type="submit" id="submit" class="btn btn-lg btn-primary btn-block" value="Login" />
 </form>
-<br />
-
 {% endblock %}

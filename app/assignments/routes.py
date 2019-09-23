@@ -303,6 +303,22 @@ def save_code_to_file(assignment_id, tab, code):
         save_template(assignment, filename)
 
 
+def get_filename_for_existing(tab, assignment):
+    filename = ""
+    solution = None
+    if current_user.role.name in ["teacher", "admin"]:
+        solution = Solution.query.filter_by(
+            assignment_id=assignment.id, is_default=True).first()
+        if solution:
+            filename = solution.code.path
+    else:
+        solution = Solution.query.filter_by(
+            assignment_id=assignment.id, is_default=False, is_submitted=False, user_id=current_user.id).first()
+        if solution:
+            filename = solution.code.path
+    return filename
+
+
 def get_filename_for_existing_solution(assignment):
     filename = ""
     solution = None
