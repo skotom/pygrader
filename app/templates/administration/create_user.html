@@ -7,19 +7,29 @@
     class="form-signin"
     autocomplete="off"
 >
-    <h1 class="h3 mb-3 font-weight-normal">Add user data</h1>
-    <label for="username" class="sr-only">Username:</label>
-    <input type="text" class="form-control" name="username" id="username" />
-
-    <label for="password" class="sr-only">Password:</label>
-    <input type="password" class="form-control" name="password" id="password" />
-
-    <div class="checkbox mb-3">
-        <label>
-            <input type="checkbox" name="remember_me" id="remember_me" />
-            Remember me
-        </label>
+    <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" class="form-control" name="username" id="username" autocomplete="off" />
     </div>
-    <input type="submit" id="submit" class="btn btn-lg btn-primary btn-block" value="Login" />
+
+    <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" class="form-control" name="password" id="password" autocomplete="off" />
+    </div>
+    <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" class="form-control" name="email" id="email" autocomplete="off" />
+    </div>
+    <div class="form-group">
+        <label for="role">Role:</label>
+        <select class="form-control" name="roleId">
+            {% for role in roles %} {% if role.name == 'student' %}
+            <option value="{{ role.id }}" selected>{{ role.name }}</option>
+            {% else %}
+            <option value="{{ role.id }}">{{ role.name }}</option>
+            {% endif %} {% endfor %}
+        </select>
+    </div>
+    <input type="submit" id="submit" class="btn btn-lg btn-primary btn-block" value="Add user" />
 </form>
 {% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %} {% block app_content %}
+<h1>Users</h1>
+<div class="row">
+    <div class="col-md-2">
+        <a href="{{ url_for('administration.create_user') }}" class="btn btn-primary width100">Add user</a>
+    </div>
+</div>
+<br />
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    {{ user.username }}
+                </td>
+                <td>
+                    {{ user.role.name }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2">No users</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
