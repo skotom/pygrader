@@ -253,7 +253,7 @@ def save_code(assignment_id):
 def run_code(assignment_id):
     assignment = Assignment.query.filter_by(id=assignment_id).first()
 
-    test_data = parse_test_data(assignment.test_data)
+    test_data = parse_test_data(assignment.test_data, 3)
     results = []
 
     for i in range(0, len(test_data["test_inputs"])):
@@ -502,11 +502,11 @@ def run_just_code(assignment, test_data = None):
 
     return result
 
-def parse_test_data(test_data_plain_text):
+def parse_test_data(test_data_plain_text, num_of_td = None):
     rows = test_data_plain_text.split('\n')
     test_inputs = []
     test_outputs = []
-    n = len(rows) if len(rows) <= 3 else 3
+    n = len(rows) if len(rows) <= 3 else num_of_td if num_of_td != None else len(rows)
     for i in range(0, n):
         row = rows[i]
         row.replace(' ', '')

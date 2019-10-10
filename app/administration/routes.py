@@ -23,7 +23,8 @@ def create_user():
             password = request.form.get('password')
             role = Role.query.filter_by(id=role_id).first()
 
-            user = User(username=username, email=email, role=role)
+            user = User(username=username, email=email,
+                        role=role, auto_save_code=True)
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
