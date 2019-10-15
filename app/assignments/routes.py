@@ -17,7 +17,7 @@ import time
 import re
 from shutil import copyfile
 import platform
-from datetime import datetime
+from datetime import datetime, timedelta
 
 _GRADE = {'PASS': 1, 'FAIL': 2, 'PARTIAL': 3}
 
@@ -458,7 +458,7 @@ def export(id):
                 solution_file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], solution.code.path)
                 timestamp = creation_date(solution_file_path)
                 date_submitted = datetime.utcfromtimestamp(
-                    timestamp)
+                    timestamp) + timedelta(hours=2)
                 solution.date_submitted = date_submitted
                 db.session.add(solution)
                 db.session.commit()
