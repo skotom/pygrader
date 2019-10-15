@@ -18,5 +18,7 @@ class Config(object):
     ADMINS = ['support@pygrader.science']
     UPLOAD_FOLDER = os.environ.get(
         'UPLOAD_FOLDER') or os.path.join(basedir, 'uploads')
+    EXPORT_FOLDER = os.environ.get(
+        'EXPORT_FOLDER') or os.path.join(basedir, 'exports')
     ALLOWED_EXTENSIONS = set(['py'])
     TEMPLATES_AUTO_RELOAD = True

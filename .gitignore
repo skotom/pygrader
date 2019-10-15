@@ -29,6 +29,7 @@ nosetests.xml
 
 venv
 uploads
+exports
 app.db
 pygrader.log*
 .env

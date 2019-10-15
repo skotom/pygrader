@@ -1,12 +1,13 @@
 # coding=utf-8
 import io
 import os
+import json
 import sys
 from flask import make_response, render_template, flash, redirect, url_for, request, \
     current_app
 from flask_login import login_required, current_user
 from app import db
-from app.models import Course, Assignment, Solution, Test, Code, Template
+from app.models import Course, Assignment, Solution, Test, Code, Template, User
 from app.assignments import bp
 from werkzeug.utils import secure_filename
 from flask import jsonify
@@ -14,6 +15,9 @@ import datetime
 import uuid
 import time
 import re
+from shutil import copyfile
+import platform
+from datetime import datetime
 
 _GRADE = {'PASS': 1, 'FAIL': 2, 'PARTIAL': 3}
 
@@ -366,7 +370,7 @@ def execute_code(code):
         start = time.time()
         exec(executable, locals(), locals())
         end = time.time()
-        execution_time = start - end
+        execution_time = round((end - start), 2)
         sys.stdout = sys.__stdout__
         resp = buffer.getvalue()
     except IOError as ioe:
@@ -421,6 +425,61 @@ def active_solution(assignment_id):
     resp = {'id': solution.id}
     return jsonify(resp)
 
+
+@bp.route("/export/<int:id>", methods=["GET"])
+@login_required
+def export(id):
+    if current_user.role.name == "admin":
+        solutions = Solution.query.filter_by(assignment_id=id, is_submitted=True).all()
+        assignment = Assignment.query.filter_by(id=id).first_or_404()
+        user_solutions = {}
+        assignment_path = os.path.join(
+            current_app.config["EXPORT_FOLDER"], "assignment_{}".format(id))
+        os.makedirs(assignment_path)
+
+        for solution in solutions:
+            if solution.user_id in user_solutions.keys():
+                user_solutions[solution.user_id].append(solution)
+            else:
+                user_solutions[solution.user_id] = [solution]
+
+        for user_id in user_solutions:
+            user = User.query.filter_by(id=user_id).first()
+            student_path = os.path.join(
+                assignment_path, "{}".format(user.username))
+            os.makedirs(student_path)
+
+            for solution in user_solutions[user_id]:
+                solution_path = os.path.join(
+                    student_path, "solution{}".format(solution.id))
+                os.makedirs(solution_path)
+                result_file_path = os.path.join(solution_path, 'result.json')
+                result_file = open(result_file_path, "w+", encoding='utf-8')
+                solution_file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], solution.code.path)
+                timestamp = creation_date(solution_file_path)
+                date_submitted = datetime.utcfromtimestamp(
+                    timestamp)
+                solution.date_submitted = date_submitted
+                db.session.add(solution)
+                db.session.commit()
+                
+               
+                result_data = parse_result_text(solution.result_text, id, assignment.time_limit)
+                result_data_obj = {}
+                result_data_obj["date_submitted"] = date_submitted.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
+                result_data_obj["time_limit"] = assignment.time_limit
+                result_data_obj["test_results"] = result_data
+                
+                result_file.write(json.dumps(result_data_obj))
+
+                solution_export_file_path = os.path.join(
+                    solution_path, 'solution.py')
+
+                copyfile(solution_file_path, solution_export_file_path)
+    
+        return "OK"
+    else:
+        return render_template('errors/401.html'), 401
 
 @bp.route("/submit", methods=["POST"])
 @login_required
@@ -541,3 +600,101 @@ def is_number(s):
         return True
     except ValueError:
         return False
+
+
+def parse_correct(correct_str):
+    correct_str = correct_str.replace(":", "")
+    if "INCORRECT" in correct_str:
+        result_str = correct_str.replace("INCORRECT", "")
+        results = result_str.strip().split("!=")
+        return {"is_correct": False, "correct_output": results[1].strip(), "student_output": results[0].strip()}
+    else:
+        result_str = correct_str.replace("CORRECT", "")
+        results = result_str.strip().split("==")
+        return {"is_correct": True, "correct_output": results[1].strip(), "student_output": results[0].strip()}
+
+
+def find_comma_after_result(text):
+    i = 0
+    if "==" in text:
+        i = text.index("==")
+    else:
+        i = text.index("!=")
+
+    temp = text[i:]
+    comma_i = temp.index(",")
+    real_i = comma_i + (len(text[:i]))
+    return real_i
+
+
+def parse_result_text(result_text, assignment_id, time_limit):
+    rows = result_text.split("\n")
+    result_list = []
+
+    for row in rows:
+        resic = {}
+        line_without_test = row[row.index(":"):]
+        comma_index = find_comma_after_result(line_without_test)
+        correct = line_without_test[:comma_index]
+        correct_res = parse_correct(correct)
+        resic["is_correct"] = correct_res["is_correct"]
+        resic["correct_output"] = correct_res["correct_output"]
+        resic["student_output"] = correct_res["student_output"]
+
+        if correct_res["is_correct"]:
+            line_without_correct = line_without_test.replace(correct, "")
+            if "TIME" in line_without_correct:
+                if "AND ON TIME" in line_without_correct:
+                    line_without_correct = line_without_correct.replace(
+                        ",  AND ON TIME,", "")
+                elif "BUT TOO SLOW" in line_without_correct:
+                    line_without_correct = line_without_correct.replace(
+                        ",  BUT TOO SLOW,", "")
+
+                time_line = line_without_correct[:line_without_correct.index(
+                    ",")]
+                time = time_line.replace(" TIME: ", "").replace(
+                    "s", "").replace("-", "")
+                rounded_time = round(
+                    float(time), 2) if not "e" in time else 0.0
+                resic["time_of_execution"] = rounded_time
+
+                if time_limit > rounded_time:
+                    resic["is_on_time"] = True
+                else:
+                    resic["is_on_time"] = False
+        if "is_on_time" in resic.keys():
+            if resic["is_correct"]:
+                resic["grade"] = "PASS"
+            else:
+                resic["grade"] = "FAIL"
+
+            if not resic["is_on_time"]:
+                resic["grade"] = "FAIL"
+        else:
+            if resic["is_correct"]:
+                resic["grade"] = "PASS"
+            else:
+                resic["grade"] = "FAIL"
+
+        result_list.append(resic)
+
+    return result_list
+
+
+def creation_date(path_to_file):
+    """
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime

@@ -139,6 +139,7 @@ class Solution(db.Model):
     assignment_id = db.Column(db.Integer(), db.ForeignKey('assignment.id'))
     assignment = db.relationship('Assignment')
     is_submitted = db.Column(db.Boolean(), default=False)
+    date_submitted = db.Column(db.DateTime, nullable=True)
     result = db.Column(db.Integer())
     result_text = db.Column(db.Text())
 

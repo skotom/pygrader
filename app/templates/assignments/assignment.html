@@ -3,11 +3,16 @@
 <div id="markdownDesc"></div>
 <br />
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-2">
         {% if current_user.role.name in ['teacher', 'admin'] %}
-        <a href="{{url_for('assignments.edit_assignment', id=assignment.id)}}" class="btn btn-primary">Edit</a>
+        <a href="{{url_for('assignments.edit_assignment', id=assignment.id)}}" class="btn btn-primary width100">Edit</a>
         {% endif%}
     </div>
+    {% if current_user.role.name == 'admin' %}
+    <div class="col-md-2">
+        <a href="{{url_for('assignments.export', id=assignment.id)}}" class="btn btn-primary width100">Export</a>
+    </div>
+    {% endif%}
 </div>
 <div id="editorHolder"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/9.1.0/markdown-it.min.js"></script>
