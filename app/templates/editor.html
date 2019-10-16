@@ -57,23 +57,32 @@
     </div>
 </div>
 
-<div class="modal" id="solutionModal" role="dialog">
+<div class="modal" id="solutionModal" role="dialog" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" style="max-width: 600px;">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Result</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
             </div>
             <div class="modal-body">
             </div>
             <div class="modal-footer">
                 <button type="button" id="btnTryAgain" class="btn btn-primary">Try again</button>
-                <button type="button" id="btnBack" class="btn btn-secondary" data-dismiss="modal">Return</button>
+                <button type="button" id="btnBack" class="btn btn-secondary" data-dismiss="modal">Return to assignments</button>
             </div>
         </div>
     </div>
+</div>
+<div id="spinner" style="    background: #CCC;
+                opacity: 0.5;
+                position: fixed;
+                top: 0;
+                z-index: 1000;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+                display: none">
+    <i style="position: absolute; top: 50%" class='fas fa-5x fa-circle-notch fa-spin'></i>
 </div>
 <style>
 </style>
@@ -199,7 +208,10 @@
         });
     }
 
-    function submitSolution(){
+    function submitSolution(button){
+        button.addClass("disabled");
+        button.attr("disabled", "true");
+        $("#spinner").show();
         const solutionId = localStorage.getItem('solutionId');
         $.ajax({
             type: 'post',
@@ -215,11 +227,14 @@
                     responseText += '<p style="color:'+color+'">' +result.message + '</p><br>';
                 }
                 solutionModal.find('.modal-body').html(responseText);
+                $("#spinner").hide();
+                localStorage.removeItem("solution");
             },
             error: function(){
+                button.removeClass("disabled");
+                button.removeAttr("disabled");
             }
         });
-        localStorage.removeItem("solution");
     }
 
     function init(activeTabId) {
@@ -307,7 +322,7 @@
         });
 
         $('#submitSolutionBtn').click(function () {
-           submitSolution(); 
+           submitSolution($(this)); 
         });
 
         $('#btnTryAgain').click(function (){
