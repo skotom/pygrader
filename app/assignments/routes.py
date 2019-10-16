@@ -456,17 +456,12 @@ def export(id):
                 result_file_path = os.path.join(solution_path, 'result.json')
                 result_file = open(result_file_path, "w+", encoding='utf-8')
                 solution_file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], solution.code.path)
-                timestamp = creation_date(solution_file_path)
-                date_submitted = datetime.utcfromtimestamp(
-                    timestamp) + timedelta(hours=2)
-                solution.date_submitted = date_submitted
                 db.session.add(solution)
                 db.session.commit()
-                
-               
                 result_data = parse_result_text(solution.result_text, id, assignment.time_limit)
                 result_data_obj = {}
-                result_data_obj["date_submitted"] = date_submitted.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
+                result_data_obj["date_submitted"] = solution.date_submitted.strftime(
+                    '%Y-%m-%dT%H:%M:%S.%f%z')
                 result_data_obj["time_limit"] = assignment.time_limit
                 result_data_obj["test_results"] = result_data
                 
@@ -530,6 +525,7 @@ def submit():
 
     solution.result_text = '\n '.join([result['message'] for result in results])
     solution.is_submitted = True
+    solution.date_submitted = datetime.now()
     db.session.add(solution)
     db.session.commit()
     return jsonify({"result": results})
